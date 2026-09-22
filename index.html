@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EduMotion: Kuis Gerak Interaktif by @aliabidin98</title>
+    <title>EduMotion: Kuis Gerak Interaktif By @aliabidin98</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -171,17 +171,22 @@
                 <i class="fas fa-child-reaching text-4xl text-white"></i>
             </div>
             <h1 class="text-4xl md:text-6xl text-white mb-2 drop-shadow-md">Edu<span class="text-brand">Motion</span></h1>
-            <p class="text-gray-300 text-lg mb-8 font-semibold">Kuis Edukasi Berbasis Gerakan Kamera </p>
+            <p class="text-gray-300 text-lg mb-2 font-semibold">Kuis Edukasi Berbasis Gerakan Kamera</p>
             <p class="text-gray-400 text-sm mt-2 mb-8"> Dibuat oleh : M. Nur Ali Abidin, S.Pd </p>
+           
+                
 
             <div id="menu-actions" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <button onclick="showSubjectSelect()" class="bg-blue-600 hover:bg-blue-500 text-white p-4 rounded-2xl font-bold text-xl transition-all transform hover:scale-105 shadow-lg border-b-4 border-blue-800">
-                    <i class="fas fa-play mr-2"></i> Main Kuis Bawaan
+                <button onclick="showSubjectSelect(false)" class="bg-blue-600 hover:bg-blue-500 text-white p-4 rounded-2xl font-bold text-xl transition-all transform hover:scale-105 shadow-lg border-b-4 border-blue-800">
+                    <i class="fas fa-user mr-2"></i> Mode 1 Pemain
+                </button>
+                <button onclick="showSubjectSelect(true)" class="bg-red-600 hover:bg-red-500 text-white p-4 rounded-2xl font-bold text-xl transition-all transform hover:scale-105 shadow-lg border-b-4 border-red-800">
+                    <i class="fas fa-user-friends mr-2"></i> Battle 2 Pemain
                 </button>
                 <button onclick="showCustomQuizEditor()" class="bg-purple-600 hover:bg-purple-500 text-white p-4 rounded-2xl font-bold text-xl transition-all transform hover:scale-105 shadow-lg border-b-4 border-purple-800">
                     <i class="fas fa-plus-circle mr-2"></i> Buat Kuis Sendiri
                 </button>
-                <button onclick="showHowToPlay()" class="md:col-span-2 bg-slate-700 hover:bg-slate-600 text-white p-3 rounded-2xl font-bold text-lg transition-all transform hover:scale-105 shadow-lg">
+                <button onclick="showHowToPlay()" class="bg-slate-700 hover:bg-slate-600 text-white p-4 rounded-2xl font-bold text-xl transition-all transform hover:scale-105 shadow-lg">
                     <i class="fas fa-question-circle mr-2"></i> Cara Bermain
                 </button>
             </div>
@@ -207,7 +212,7 @@
         <button onclick="backToMenu('subject-select')" class="absolute top-6 left-6 text-white text-xl hover:text-brand transition-colors">
             <i class="fas fa-arrow-left"></i> Kembali
         </button>
-        <h2 class="text-4xl text-white mb-8 heading-font drop-shadow-lg">Pilih Pelajaran</h2>
+        <h2 id="subject-select-title" class="text-4xl text-white mb-8 heading-font drop-shadow-lg">Pilih Pelajaran</h2>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl w-full">
             <button onclick="startPreloadedGame('Matematika')" class="glass hover:bg-blue-600/30 p-6 rounded-2xl transition-all transform hover:scale-105 group text-left relative overflow-hidden">
@@ -238,10 +243,15 @@
             <button onclick="backToMenu('custom-quiz-editor')" class="text-white hover:text-brand transition-colors px-4 py-2">
                 <i class="fas fa-arrow-left mr-2"></i> Menu
             </button>
-            <h2 class="text-2xl heading-font text-white">Buat Kuis <span class="text-purple-400">Sendiri</span></h2>
-            <button onclick="playCustomQuiz()" class="bg-brand hover:bg-brand-dark text-white px-6 py-2 rounded-lg font-bold shadow-lg transition-colors">
-                <i class="fas fa-play mr-2"></i> Mainkan!
-            </button>
+            <h2 class="text-2xl heading-font text-white hidden md:block">Buat Kuis <span class="text-purple-400">Sendiri</span></h2>
+            <div class="flex gap-2">
+                <button onclick="playCustomQuiz(false)" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold shadow-lg transition-colors text-sm md:text-base">
+                    <i class="fas fa-user"></i> 1 Pemain
+                </button>
+                <button onclick="playCustomQuiz(true)" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-bold shadow-lg transition-colors text-sm md:text-base">
+                    <i class="fas fa-user-friends"></i> Battle
+                </button>
+            </div>
         </div>
 
         <div class="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col md:flex-row gap-6">
@@ -311,10 +321,12 @@
             
             <!-- Header (Question & Progress) -->
             <div class="w-full flex justify-center pt-4 pointer-events-none">
-                <div class="glass-dark max-w-2xl w-full mx-4 rounded-2xl p-4 text-center border-t-4 border-t-brand shadow-2xl">
+                <div class="glass-dark max-w-3xl w-full mx-4 rounded-2xl p-4 text-center border-t-4 border-t-brand shadow-2xl">
                     <div class="flex justify-between items-center mb-2 px-2 text-sm md:text-base text-gray-300 font-bold">
+                        <span id="p1-score-display" class="text-blue-400 hidden">P1: 0</span>
                         <span id="game-score">Skor: 0</span>
                         <span id="game-progress" class="bg-slate-700 px-3 py-1 rounded-full text-brand">Soal 1/5</span>
+                        <span id="p2-score-display" class="text-red-400 hidden">P2: 0</span>
                     </div>
                     <h2 id="game-question" class="text-2xl md:text-4xl text-white font-bold leading-tight drop-shadow-md">
                         Siap?
@@ -331,9 +343,9 @@
             <div id="game-result" class="hidden absolute inset-0 bg-slate-900/90 z-50 flex items-center justify-center pointer-events-auto">
                 <div class="glass max-w-md w-full p-8 rounded-3xl text-center animate-bounce-in border-2 border-brand">
                     <i class="fas fa-trophy text-6xl text-yellow-400 mb-4 drop-shadow-[0_0_15px_rgba(250,204,21,0.8)]"></i>
-                    <h2 class="text-4xl text-white heading-font mb-2">Selesai!</h2>
-                    <p class="text-xl text-gray-300 mb-6">Skor Akhirmu:</p>
-                    <div class="text-6xl heading-font text-brand mb-8" id="final-score">100</div>
+                    <h2 id="final-score-title" class="text-4xl text-white heading-font mb-2">Selesai!</h2>
+                    <p id="final-score-label" class="text-xl text-gray-300 mb-6">Skor Akhirmu:</p>
+                    <div class="text-5xl md:text-6xl heading-font text-brand mb-8" id="final-score">100</div>
                     
                     <div class="flex gap-4 justify-center">
                         <button onclick="restartGame()" class="flex-1 bg-brand hover:bg-brand-dark text-white p-3 rounded-xl font-bold transition-transform transform hover:scale-105">
@@ -353,7 +365,9 @@
 
             <!-- 4 Answer Zones Centered -->
             <div class="flex-1 w-full flex items-center justify-center p-4 pointer-events-none mt-10 md:mt-0 z-30">
-                <div class="grid grid-cols-2 gap-4 md:gap-12 w-full max-w-4xl pointer-events-auto">
+                
+                <!-- Single Player Board -->
+                <div id="single-board" class="grid grid-cols-2 gap-4 md:gap-12 w-full max-w-4xl pointer-events-auto">
                     <div id="zone-0" class="answer-zone glass font-bold text-lg md:text-2xl drop-shadow-md">
                         <div class="zone-progress-bg"></div>
                         <span class="z-10 relative pointer-events-none" id="text-zone-0">Jawaban A</span>
@@ -371,6 +385,49 @@
                         <span class="z-10 relative pointer-events-none" id="text-zone-3">Jawaban D</span>
                     </div>
                 </div>
+
+                <!-- Battle Board (Hidden by default) -->
+                <div id="battle-board" class="hidden w-full flex justify-between gap-2 md:gap-8 pointer-events-auto">
+                    <!-- Player 1 (Kiri) -->
+                    <div class="w-1/2 grid grid-cols-1 md:grid-cols-2 gap-3 border-r-4 border-dashed border-white/20 pr-2 md:pr-4">
+                        <div id="p1-zone-0" class="answer-zone glass font-bold text-sm md:text-lg border-2 border-blue-500/50">
+                            <div class="zone-progress-bg bg-blue-500/40"></div>
+                            <span class="z-10 relative pointer-events-none" id="p1-text-zone-0">A</span>
+                        </div>
+                        <div id="p1-zone-1" class="answer-zone glass font-bold text-sm md:text-lg border-2 border-blue-500/50">
+                            <div class="zone-progress-bg bg-blue-500/40"></div>
+                            <span class="z-10 relative pointer-events-none" id="p1-text-zone-1">B</span>
+                        </div>
+                        <div id="p1-zone-2" class="answer-zone glass font-bold text-sm md:text-lg border-2 border-blue-500/50">
+                            <div class="zone-progress-bg bg-blue-500/40"></div>
+                            <span class="z-10 relative pointer-events-none" id="p1-text-zone-2">C</span>
+                        </div>
+                        <div id="p1-zone-3" class="answer-zone glass font-bold text-sm md:text-lg border-2 border-blue-500/50">
+                            <div class="zone-progress-bg bg-blue-500/40"></div>
+                            <span class="z-10 relative pointer-events-none" id="p1-text-zone-3">D</span>
+                        </div>
+                    </div>
+                    <!-- Player 2 (Kanan) -->
+                    <div class="w-1/2 grid grid-cols-1 md:grid-cols-2 gap-3 pl-2 md:pl-4">
+                        <div id="p2-zone-0" class="answer-zone glass font-bold text-sm md:text-lg border-2 border-red-500/50">
+                            <div class="zone-progress-bg bg-red-500/40"></div>
+                            <span class="z-10 relative pointer-events-none" id="p2-text-zone-0">A</span>
+                        </div>
+                        <div id="p2-zone-1" class="answer-zone glass font-bold text-sm md:text-lg border-2 border-red-500/50">
+                            <div class="zone-progress-bg bg-red-500/40"></div>
+                            <span class="z-10 relative pointer-events-none" id="p2-text-zone-1">B</span>
+                        </div>
+                        <div id="p2-zone-2" class="answer-zone glass font-bold text-sm md:text-lg border-2 border-red-500/50">
+                            <div class="zone-progress-bg bg-red-500/40"></div>
+                            <span class="z-10 relative pointer-events-none" id="p2-text-zone-2">C</span>
+                        </div>
+                        <div id="p2-zone-3" class="answer-zone glass font-bold text-sm md:text-lg border-2 border-red-500/50">
+                            <div class="zone-progress-bg bg-red-500/40"></div>
+                            <span class="z-10 relative pointer-events-none" id="p2-text-zone-3">D</span>
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
         </div>
@@ -419,6 +476,11 @@
         let currentQuestionIndex = 0;
         let score = 0;
         
+        // Mode Battle State
+        let isBattleMode = false;
+        let p1Score = 0;
+        let p2Score = 0;
+
         // Game State
         let gameState = 'MENU'; // MENU, PLAYING, GAMEOVER, TRANSITION
         let activeZones = []; // To store which answer is in which zone
@@ -436,7 +498,12 @@
 
         function showHowToPlay() { document.getElementById('how-to-play').classList.remove('hidden'); }
         function hideHowToPlay() { document.getElementById('how-to-play').classList.add('hidden'); }
-        function showSubjectSelect() { hideAllScreens(); document.getElementById('subject-select').classList.remove('hidden'); }
+        function showSubjectSelect(battle = false) { 
+            isBattleMode = battle;
+            hideAllScreens(); 
+            document.getElementById('subject-select').classList.remove('hidden'); 
+            document.getElementById('subject-select-title').innerText = battle ? "Pilih Pelajaran (Battle)" : "Pilih Pelajaran";
+        }
         function showCustomQuizEditor() { hideAllScreens(); document.getElementById('custom-quiz-editor').classList.remove('hidden'); renderCustomQuestions(); }
         function backToMenu(fromId) { hideAllScreens(); document.getElementById('main-menu').classList.remove('hidden'); stopCamera(); }
 
@@ -503,14 +570,13 @@
 
         function startPreloadedGame(subject) {
             activeQuiz = [...preloadedQuizzes[subject]]; // clone array
-            // Shuffle questions
             activeQuiz.sort(() => Math.random() - 0.5);
             initGameEnv();
         }
 
-        function playCustomQuiz() {
+        function playCustomQuiz(battle = false) {
+            isBattleMode = battle;
             if(customQuestions.length === 0) {
-                alert("Harap buat minimal 1 pertanyaan!"); // Custom modal would be better, but rule says no alert. Ah, wait, RULE says NO alert. I must replace this.
                 const errorEl = document.getElementById('cq-error');
                 errorEl.innerText = "Harap buat minimal 1 pertanyaan terlebih dahulu!";
                 errorEl.classList.remove('hidden');
@@ -542,9 +608,26 @@
             // Reset state
             currentQuestionIndex = 0;
             score = 0;
+            p1Score = 0;
+            p2Score = 0;
             gameState = 'PLAYING';
             lockedAnswer = false;
             
+            // Setup Mode UI
+            if(isBattleMode) {
+                document.getElementById('single-board').classList.add('hidden');
+                document.getElementById('battle-board').classList.remove('hidden');
+                document.getElementById('game-score').classList.add('hidden');
+                document.getElementById('p1-score-display').classList.remove('hidden');
+                document.getElementById('p2-score-display').classList.remove('hidden');
+            } else {
+                document.getElementById('single-board').classList.remove('hidden');
+                document.getElementById('battle-board').classList.add('hidden');
+                document.getElementById('game-score').classList.remove('hidden');
+                document.getElementById('p1-score-display').classList.add('hidden');
+                document.getElementById('p2-score-display').classList.add('hidden');
+            }
+
             resizeCanvases();
             updateScoreUI();
             loadNextQuestion();
@@ -560,6 +643,8 @@
             document.getElementById('game-result').classList.add('hidden');
             currentQuestionIndex = 0;
             score = 0;
+            p1Score = 0;
+            p2Score = 0;
             gameState = 'PLAYING';
             lockedAnswer = false;
             
@@ -656,32 +741,60 @@
 
             activeZones = [];
             
-            // Reset zone UI
-            for(let i=0; i<4; i++) {
-                const zoneEl = document.getElementById(`zone-${i}`);
-                const textEl = document.getElementById(`text-zone-${i}`);
-                const progressBg = zoneEl.querySelector('.zone-progress-bg');
-                
-                zoneEl.className = 'answer-zone glass font-bold text-lg md:text-2xl drop-shadow-md'; // reset classes
-                progressBg.style.width = '0%';
-                
-                textEl.innerText = options[i].text;
-                
-                activeZones.push({
-                    id: i,
-                    element: zoneEl,
-                    isCorrect: options[i].isCorrect,
-                    progress: 0
-                });
+            if(!isBattleMode) {
+                // Setup Single Player Zones
+                for(let i=0; i<4; i++) {
+                    const zoneEl = document.getElementById(`zone-${i}`);
+                    const textEl = document.getElementById(`text-zone-${i}`);
+                    const progressBg = zoneEl.querySelector('.zone-progress-bg');
+                    
+                    zoneEl.className = 'answer-zone glass font-bold text-lg md:text-2xl drop-shadow-md'; 
+                    progressBg.style.width = '0%';
+                    progressBg.className = 'zone-progress-bg';
+                    textEl.innerText = options[i].text;
+                    
+                    activeZones.push({ id: i, element: zoneEl, isCorrect: options[i].isCorrect, progress: 0, player: 1 });
+                }
+            } else {
+                // Setup Battle Mode Zones (8 Zones)
+                for(let i=0; i<4; i++) {
+                    // Player 1
+                    const p1ZoneEl = document.getElementById(`p1-zone-${i}`);
+                    const p1TextEl = document.getElementById(`p1-text-zone-${i}`);
+                    const p1ProgressBg = p1ZoneEl.querySelector('.zone-progress-bg');
+                    p1ZoneEl.className = 'answer-zone glass font-bold text-sm md:text-lg border-2 border-blue-500/50';
+                    p1ProgressBg.style.width = '0%';
+                    p1ProgressBg.className = 'zone-progress-bg bg-blue-500/40';
+                    p1TextEl.innerText = options[i].text;
+                    activeZones.push({ id: `p1-${i}`, element: p1ZoneEl, isCorrect: options[i].isCorrect, progress: 0, player: 1 });
+
+                    // Player 2
+                    const p2ZoneEl = document.getElementById(`p2-zone-${i}`);
+                    const p2TextEl = document.getElementById(`p2-text-zone-${i}`);
+                    const p2ProgressBg = p2ZoneEl.querySelector('.zone-progress-bg');
+                    p2ZoneEl.className = 'answer-zone glass font-bold text-sm md:text-lg border-2 border-red-500/50';
+                    p2ProgressBg.style.width = '0%';
+                    p2ProgressBg.className = 'zone-progress-bg bg-red-500/40';
+                    p2TextEl.innerText = options[i].text;
+                    activeZones.push({ id: `p2-${i}`, element: p2ZoneEl, isCorrect: options[i].isCorrect, progress: 0, player: 2 });
+                }
             }
 
             document.getElementById('game-progress').innerText = `Soal ${currentQuestionIndex + 1}/${activeQuiz.length}`;
             gameState = 'PLAYING';
             lockedAnswer = false;
+            
+            // Recalculate coordinates because layout might have changed
+            setTimeout(calculateZoneRects, 100); 
         }
 
         function updateScoreUI() {
-            document.getElementById('game-score').innerText = `Skor: ${score}`;
+            if(isBattleMode) {
+                document.getElementById('p1-score-display').innerText = `P1: ${p1Score}`;
+                document.getElementById('p2-score-display').innerText = `P2: ${p2Score}`;
+            } else {
+                document.getElementById('game-score').innerText = `Skor: ${score}`;
+            }
         }
 
         function handleAnswer(zoneIndex) {
@@ -692,37 +805,70 @@
             const selectedZone = activeZones[zoneIndex];
             const zoneEl = selectedZone.element;
 
-            if (selectedZone.isCorrect) {
-                // Correct!
-                zoneEl.classList.add('correct-answer');
-                score += 10;
+            if(isBattleMode) {
+                const playerStr = selectedZone.player === 1 ? "Pemain Kiri (P1)" : "Pemain Kanan (P2)";
                 
-                // Sound effect fallback (using Web Audio API for simple beep instead of external files)
-                playTone(600, 'sine', 0.1);
-                setTimeout(() => playTone(800, 'sine', 0.2), 100);
+                if (selectedZone.isCorrect) {
+                    zoneEl.classList.add('correct-answer');
+                    if(selectedZone.player === 1) p1Score += 10;
+                    else p2Score += 10;
+                    document.getElementById('game-question').innerHTML = `<span class="text-brand">${playerStr} Menjawab Benar! +10</span>`;
+                    playTone(600, 'sine', 0.1);
+                    setTimeout(() => playTone(800, 'sine', 0.2), 100);
+                } else {
+                    zoneEl.classList.add('wrong-answer');
+                    // Lawan dapat 5 poin jika salah
+                    if(selectedZone.player === 1) p2Score += 5; 
+                    else p1Score += 5;
+                    document.getElementById('game-question').innerHTML = `<span class="text-red-500">${playerStr} Salah! Lawan +5</span>`;
+                    
+                    activeZones.forEach(z => {
+                        if(z.isCorrect) z.element.classList.add('correct-answer');
+                    });
+                    playTone(300, 'sawtooth', 0.3);
+                }
             } else {
-                // Wrong
-                zoneEl.classList.add('wrong-answer');
-                // Highlight the correct one
-                const correctZone = activeZones.find(z => z.isCorrect);
-                if(correctZone) correctZone.element.classList.add('correct-answer');
-                
-                playTone(300, 'sawtooth', 0.3);
+                if (selectedZone.isCorrect) {
+                    zoneEl.classList.add('correct-answer');
+                    score += 10;
+                    playTone(600, 'sine', 0.1);
+                    setTimeout(() => playTone(800, 'sine', 0.2), 100);
+                } else {
+                    zoneEl.classList.add('wrong-answer');
+                    const correctZone = activeZones.find(z => z.isCorrect);
+                    if(correctZone) correctZone.element.classList.add('correct-answer');
+                    playTone(300, 'sawtooth', 0.3);
+                }
             }
 
             updateScoreUI();
 
-            // Wait a bit before next question
             setTimeout(() => {
                 currentQuestionIndex++;
                 loadNextQuestion();
-            }, 2000);
+            }, 2500);
         }
 
         function endGame() {
             gameState = 'GAMEOVER';
             document.getElementById('game-result').classList.remove('hidden');
-            document.getElementById('final-score').innerText = score;
+            
+            if(isBattleMode) {
+                let resultText = "Seimbang!";
+                let resultColor = "text-yellow-400";
+                if(p1Score > p2Score) { resultText = "Pemain 1 Menang!"; resultColor = "text-blue-400"; } 
+                else if (p2Score > p1Score) { resultText = "Pemain 2 Menang!"; resultColor = "text-red-400"; }
+                
+                document.getElementById('final-score-title').innerText = resultText;
+                document.getElementById('final-score-title').className = `text-4xl heading-font mb-2 ${resultColor}`;
+                document.getElementById('final-score-label').innerText = "Skor (P1 vs P2):";
+                document.getElementById('final-score').innerText = `${p1Score} - ${p2Score}`;
+            } else {
+                document.getElementById('final-score-title').innerText = "Selesai!";
+                document.getElementById('final-score-title').className = "text-4xl text-white heading-font mb-2";
+                document.getElementById('final-score-label').innerText = "Skor Akhirmu:";
+                document.getElementById('final-score').innerText = score;
+            }
         }
 
         // Simple Tone generator for SFX (No external libs)
@@ -752,8 +898,8 @@
             const wRatio = M_WIDTH / window.innerWidth;
             const hRatio = M_HEIGHT / window.innerHeight;
 
-            for(let i=0; i<4; i++) {
-                const el = document.getElementById(`zone-${i}`);
+            for(let i=0; i<activeZones.length; i++) {
+                const el = activeZones[i].element;
                 const rect = el.getBoundingClientRect();
                 
                 zoneRects.push({
@@ -809,7 +955,7 @@
                 const currentData = currentImageData.data;
 
                 if (lastFrameData) {
-                    let zoneMotionCounts = [0, 0, 0, 0];
+                    let zoneMotionCounts = new Array(activeZones.length).fill(0);
                     let totalMotion = 0;
 
                     // Loop through all pixels
@@ -827,16 +973,12 @@
                                 totalMotion++;
                                 
                                 // Check which zone this pixel falls into
-                                for (let z = 0; z < 4; z++) {
+                                for (let z = 0; z < activeZones.length; z++) {
                                     const zr = zoneRects[z];
                                     if (x >= zr.x && x <= zr.x + zr.w && y >= zr.y && y <= zr.y + zr.h) {
                                         zoneMotionCounts[z]++;
                                     }
                                 }
-                                
-                                // (Optional) Draw debug motion pixels on main canvas
-                                // mainCtx.fillStyle = 'rgba(255,0,0,0.5)';
-                                // mainCtx.fillRect(x * (mainCanvas.width/M_WIDTH), y * (mainCanvas.height/M_HEIGHT), 5, 5);
                             }
                         }
                     }
@@ -846,12 +988,12 @@
                     if (totalMotion > (M_WIDTH * M_HEIGHT * 0.5)) {
                         motionWarning.classList.remove('hidden');
                         // Decay all zones rapidly to prevent accidental selection during big movements
-                        for (let z = 0; z < 4; z++) activeZones[z].progress = 0;
+                        for (let z = 0; z < activeZones.length; z++) activeZones[z].progress = 0;
                     } else {
                         motionWarning.classList.add('hidden');
                         
                         // Update Progress for each zone
-                        for (let z = 0; z < 4; z++) {
+                        for (let z = 0; z < activeZones.length; z++) {
                             const zone = activeZones[z];
                             const zoneArea = zoneRects[z].w * zoneRects[z].h;
                             const motionRatio = zoneMotionCounts[z] / zoneArea;
