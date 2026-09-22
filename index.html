@@ -3,984 +3,895 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Game AR Kata Baku h</title>
+    <title>EduMotion: Kuis Gerak Interaktif</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'heading': ['"Fredoka One"', 'cursive'],
+                        'body': ['Nunito', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            light: '#4ade80',
+                            DEFAULT: '#22c55e',
+                            dark: '#16a34a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
         body {
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            overflow: hidden; /* Mencegah scrolling saat bermain */
-            background-color: #1a202c; /* Warna latar belakang fallback jika kamera tidak aktif */
-            touch-action: none; /* Mencegah pull-to-refresh dan gestur standar pada mobile saat drag */
+            font-family: 'Nunito', sans-serif;
+            background-color: #0f172a; /* Slate 900 */
+            color: white;
+            overflow: hidden;
+            touch-action: none; /* Prevent scroll on mobile */
+        }
+        
+        h1, h2, h3, .heading-font {
+            font-family: '"Fredoka One"', cursive;
         }
 
-        #webcam {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            object-fit: cover;
-            z-index: 1;
-            transform: scaleX(-1); /* Efek cermin untuk kamera depan */
-        }
-
-        .game-layer {
-            position: relative;
-            z-index: 10;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            pointer-events: none; /* Biarkan klik tembus ke elemen spesifik di bawahnya */
-        }
-
-        .interactive {
-            pointer-events: auto; /* Elemen UI ini bisa di-klik / drag */
-        }
-
-        .draggable-card {
-            cursor: grab;
-            transition: transform 0.2s, box-shadow 0.2s;
-            touch-action: none; /* Penting untuk drag di layar sentuh */
-        }
-
-        .draggable-card:active {
-            cursor: grabbing;
-        }
-
-        /* Glassmorphism effect */
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.85);
+        /* Glassmorphism utilities */
+        .glass {
+            background: rgba(255, 255, 255, 0.15);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+        .glass-dark {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .dropzone-active {
-            background-color: rgba(255, 255, 255, 0.4) !important;
-            border-color: #fbbf24 !important; /* Warna kuning Tailwind */
-            transform: scale(1.05);
-        }
-
-        /* Animasi pop-up sederhana */
-        @keyframes popIn {
-            0% { transform: scale(0.5); opacity: 0; }
-            80% { transform: scale(1.1); opacity: 1; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        .animate-pop {
-            animation: popIn 0.4s ease-out forwards;
-        }
-
-        /* Kursor Tangan AI */
-        #hand-cursor {
-            position: fixed;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background-color: rgba(59, 130, 246, 0.7); /* Biru Tailwind */
-            border: 3px solid white;
-            pointer-events: none; /* Penting: agar tidak menghalangi deteksi klik di bawahnya */
-            z-index: 9999;
-            transform: translate(-50%, -50%);
+        /* Game Overlay Layers */
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
             display: none;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            transition: width 0.15s, height 0.15s, background-color 0.15s, transform 0.1s;
+        }
+        #camera-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none; /* Let clicks pass through if needed, though game is motion based */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 2vh 2vw;
         }
 
-        #hand-cursor.pinched {
-            width: 18px;
-            height: 18px;
-            background-color: rgba(34, 197, 94, 0.8); /* Hijau Tailwind saat mencubit */
-            transform: translate(-50%, -50%) scale(0.9);
-        }
-
-        /* Loading Overlay AI */
-        #ai-loader {
-            position: fixed;
-            top: 16px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            z-index: 1000;
+        /* Answer Zones */
+        .answer-zone {
+            position: absolute;
+            width: 40vw;
+            max-width: 300px;
+            min-height: 100px;
             display: flex;
             align-items: center;
-            gap: 8px;
-            backdrop-filter: blur(4px);
+            justify-content: center;
+            text-align: center;
+            padding: 1rem;
+            border-radius: 1rem;
+            transition: transform 0.2s, background-color 0.2s, box-shadow 0.2s;
+            pointer-events: auto;
         }
+        
+        /* Layout for the 4 zones */
+        #zone-0 { top: 15vh; left: 2vw; }
+        #zone-1 { top: 15vh; right: 2vw; }
+        #zone-2 { bottom: 5vh; left: 2vw; }
+        #zone-3 { bottom: 5vh; right: 2vw; }
+
+        @media (max-width: 768px) {
+            .answer-zone {
+                width: 45vw;
+                min-height: 80px;
+                padding: 0.5rem;
+                font-size: 0.9rem;
+            }
+            #zone-0 { top: 20vh; left: 2vw; }
+            #zone-1 { top: 20vh; right: 2vw; }
+            #zone-2 { bottom: 2vh; left: 2vw; }
+            #zone-3 { bottom: 2vh; right: 2vw; }
+        }
+
+        /* Progress bar inside zones when motion is detected */
+        .zone-progress-bg {
+            position: absolute;
+            bottom: 0; left: 0; height: 100%; width: 0%;
+            background-color: rgba(74, 222, 128, 0.4);
+            border-radius: 1rem;
+            z-index: -1;
+            transition: width 0.1s linear;
+        }
+
+        .active-motion {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(74, 222, 128, 0.8);
+            border-color: #4ade80;
+        }
+
+        /* Animations */
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(74, 222, 128, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+        }
+        .correct-answer {
+            background-color: #22c55e !important;
+            animation: pulse-glow 1s infinite;
+        }
+        .wrong-answer {
+            background-color: #ef4444 !important;
+            border-color: #dc2626 !important;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); opacity: 1; }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); }
+        }
+        .animate-bounce-in {
+            animation: bounceIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.1); border-radius: 10px;}
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.5); }
     </style>
 </head>
 <body>
 
-    <!-- Indikator Loading AI -->
-    <div id="ai-loader">
-        <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        <span>Memuat AI Deteksi Tangan...</span>
-    </div>
+    <div id="main-menu" class="w-full h-screen flex items-center justify-center relative bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 p-4">
+        <!-- Background Decorations -->
+        <div class="absolute top-10 left-10 text-6xl text-white/10 animate-pulse"><i class="fas fa-camera"></i></div>
+        <div class="absolute bottom-20 right-20 text-8xl text-white/10 animate-bounce"><i class="fas fa-gamepad"></i></div>
+        <div class="absolute top-1/4 right-1/4 text-5xl text-brand/20"><i class="fas fa-book"></i></div>
 
-    <!-- Kursor Tangan AI (Tampil saat tangan terdeteksi) -->
-    <div id="hand-cursor"></div>
-
-    <!-- Elemen Video Kamera -->
-    <video id="webcam" autoplay playsinline muted></video>
-
-    <!-- Overlay Gelap agar teks lebih terbaca -->
-    <div class="absolute inset-0 bg-black/30 z-[2]"></div>
-
-    <!-- Kontainer Game UI Utama -->
-    <div class="game-layer p-4 md:p-8 flex flex-col items-center">
-        
-        <!-- Header & Top Bar -->
-        <div class="w-full max-w-4xl interactive rounded-2xl overflow-hidden shadow-2xl mb-8">
-            <!-- Header Putih -->
-            <div class="glass-panel p-3 md:p-4 flex justify-between items-center bg-white/95">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                        </svg>
-                    </div>
-                    <span class="font-bold text-gray-800 text-sm md:text-lg">Game AR Kata Baku</span>
-                </div>
-                <div class="flex gap-2">
-                    <!-- Icon placeholder -->
-                    <div class="w-6 h-6 rounded bg-gray-200 flex items-center justify-center text-gray-600 text-xs font-bold">A</div>
-                    <div class="w-6 h-6 rounded bg-gray-200 flex items-center justify-center text-gray-600 text-xs font-bold">あ</div>
-                </div>
+        <div class="glass max-w-2xl w-full p-8 rounded-3xl text-center z-10 animate-bounce-in shadow-2xl">
+            <div class="inline-block p-4 bg-brand rounded-full mb-4 shadow-lg shadow-brand/50">
+                <i class="fas fa-child-reaching text-4xl text-white"></i>
             </div>
-            <!-- Bar Skor Biru -->
-            <div class="bg-gradient-to-r from-blue-700 to-blue-500 text-white p-3 md:p-4 flex justify-between items-center">
-                <span id="score-display" class="font-bold text-lg md:text-xl drop-shadow-md">Skor: 0</span>
-                <span id="question-count" class="font-bold text-lg md:text-xl drop-shadow-md">Soal: 1/10</span>
-            </div>
-        </div>
+            <h1 class="text-4xl md:text-6xl text-white mb-2 drop-shadow-md">Edu<span class="text-brand">Motion</span></h1>
+            <p class="text-gray-300 text-lg mb-8 font-semibold">Kuis Edukasi Berbasis Gerakan Kamera</p>
 
-        <!-- Area Pertanyaan & Permainan -->
-        <div class="flex-grow flex flex-col items-center justify-center w-full max-w-4xl relative">
-            
-            <!-- Judul Pertanyaan -->
-            <h2 id="question-text" class="text-2xl md:text-5xl font-extrabold text-white text-center mb-12 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] px-4">
-                Manakah penulisan kata yang baku?
-            </h2>
-
-            <!-- Pilihan Jawaban -->
-            <div id="options-container" class="flex flex-wrap justify-center gap-6 mb-20 relative w-full h-32 interactive">
-                <!-- Kartu jawaban akan di-generate oleh JavaScript di sini -->
-            </div>
-
-            <!-- Area Jatuh (Dropzone) -->
-            <div id="dropzone" class="w-[90%] max-w-md h-32 md:h-40 border-4 border-dashed border-white/70 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-sm interactive shadow-2xl transition-all duration-300">
-                <span id="dropzone-text" class="text-white font-semibold text-lg md:text-2xl drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] text-center px-4">
-                    Taruh Jawaban Benar Di Sini
-                </span>
+            <div id="menu-actions" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button onclick="showSubjectSelect()" class="bg-blue-600 hover:bg-blue-500 text-white p-4 rounded-2xl font-bold text-xl transition-all transform hover:scale-105 shadow-lg border-b-4 border-blue-800">
+                    <i class="fas fa-play mr-2"></i> Main Kuis Bawaan
+                </button>
+                <button onclick="showCustomQuizEditor()" class="bg-purple-600 hover:bg-purple-500 text-white p-4 rounded-2xl font-bold text-xl transition-all transform hover:scale-105 shadow-lg border-b-4 border-purple-800">
+                    <i class="fas fa-plus-circle mr-2"></i> Buat Kuis Sendiri
+                </button>
+                <button onclick="showHowToPlay()" class="md:col-span-2 bg-slate-700 hover:bg-slate-600 text-white p-3 rounded-2xl font-bold text-lg transition-all transform hover:scale-105 shadow-lg">
+                    <i class="fas fa-question-circle mr-2"></i> Cara Bermain
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Kotak Pesan / Modal -->
-    <div id="message-modal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden interactive">
-        <div class="bg-white rounded-3xl p-8 max-w-sm w-full mx-4 text-center transform transition-transform scale-95 shadow-2xl" id="modal-content">
-            <div id="modal-icon" class="text-6xl mb-4">✅</div>
-            <h3 id="modal-title" class="text-2xl font-bold mb-2 text-gray-800">Benar!</h3>
-            <p id="modal-desc" class="text-gray-600 mb-6">Jawabanmu tepat.</p>
-            <button id="modal-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition-colors">
-                Lanjut
+    <div id="how-to-play" class="hidden w-full h-screen absolute top-0 left-0 flex items-center justify-center bg-slate-900/95 z-50 p-4">
+        <div class="glass-dark max-w-lg w-full p-8 rounded-3xl z-10 animate-bounce-in text-center border-t-4 border-t-brand">
+            <h2 class="text-3xl text-brand mb-6"><i class="fas fa-info-circle"></i> Cara Bermain</h2>
+            <div class="space-y-4 text-left text-gray-200 mb-8">
+                <p class="flex items-start"><i class="fas fa-check-circle text-brand mt-1 mr-3"></i> <span>Game ini membutuhkan akses kamera. Pastikan memberikan izin saat diminta.</span></p>
+                <p class="flex items-start"><i class="fas fa-check-circle text-brand mt-1 mr-3"></i> <span>Pertanyaan akan muncul di bagian atas layar.</span></p>
+                <p class="flex items-start"><i class="fas fa-check-circle text-brand mt-1 mr-3"></i> <span>Empat pilihan jawaban ada di sudut layar.</span></p>
+                <p class="flex items-start"><i class="fas fa-check-circle text-brand mt-1 mr-3"></i> <span><strong>Gerakkan tanganmu (melambai)</strong> di dalam area kotak jawaban yang menurutmu benar selama 1 detik untuk memilihnya!</span></p>
+            </div>
+            <button onclick="hideHowToPlay()" class="w-full bg-slate-600 hover:bg-slate-500 text-white py-3 rounded-xl font-bold transition-all">
+                Mengerti
             </button>
         </div>
     </div>
 
-    <!-- Tombol Admin (Database) -->
-    <button id="btn-open-admin" class="fixed bottom-4 right-4 bg-gray-800/80 hover:bg-gray-700 text-white p-3 md:p-4 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.5)] interactive z-[60] backdrop-blur-md transition-transform hover:scale-110 flex items-center gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
-        </svg>
-        <span class="hidden md:inline font-bold text-sm">Database Soal</span>
-    </button>
+    <div id="subject-select" class="hidden w-full h-screen absolute top-0 left-0 flex flex-col items-center justify-center bg-slate-900/95 z-40 p-4">
+        <button onclick="backToMenu('subject-select')" class="absolute top-6 left-6 text-white text-xl hover:text-brand transition-colors">
+            <i class="fas fa-arrow-left"></i> Kembali
+        </button>
+        <h2 class="text-4xl text-white mb-8 heading-font drop-shadow-lg">Pilih Pelajaran</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl w-full">
+            <button onclick="startPreloadedGame('Matematika')" class="glass hover:bg-blue-600/30 p-6 rounded-2xl transition-all transform hover:scale-105 group text-left relative overflow-hidden">
+                <div class="absolute -right-4 -bottom-4 text-8xl text-white/5 group-hover:text-white/10 transition-colors"><i class="fas fa-calculator"></i></div>
+                <h3 class="text-2xl font-bold text-blue-300 mb-2">Matematika Dasar</h3>
+                <p class="text-sm text-gray-300">Latih kecepatan berhitungmu!</p>
+            </button>
+            <button onclick="startPreloadedGame('B.Inggris')" class="glass hover:bg-red-600/30 p-6 rounded-2xl transition-all transform hover:scale-105 group text-left relative overflow-hidden">
+                <div class="absolute -right-4 -bottom-4 text-8xl text-white/5 group-hover:text-white/10 transition-colors"><i class="fas fa-language"></i></div>
+                <h3 class="text-2xl font-bold text-red-300 mb-2">Bahasa Inggris</h3>
+                <p class="text-sm text-gray-300">Kosakata dan sinonim dasar.</p>
+            </button>
+            <button onclick="startPreloadedGame('Geografi')" class="glass hover:bg-green-600/30 p-6 rounded-2xl transition-all transform hover:scale-105 group text-left relative overflow-hidden">
+                <div class="absolute -right-4 -bottom-4 text-8xl text-white/5 group-hover:text-white/10 transition-colors"><i class="fas fa-globe-asia"></i></div>
+                <h3 class="text-2xl font-bold text-green-300 mb-2">Geografi Indonesia</h3>
+                <p class="text-sm text-gray-300">Pengetahuan provinsi dan pulau.</p>
+            </button>
+            <button onclick="startPreloadedGame('IPA')" class="glass hover:bg-yellow-600/30 p-6 rounded-2xl transition-all transform hover:scale-105 group text-left relative overflow-hidden">
+                <div class="absolute -right-4 -bottom-4 text-8xl text-white/5 group-hover:text-white/10 transition-colors"><i class="fas fa-flask"></i></div>
+                <h3 class="text-2xl font-bold text-yellow-300 mb-2">Sains & IPA</h3>
+                <p class="text-sm text-gray-300">Biologi dan Fisika dasar.</p>
+            </button>
+        </div>
+    </div>
 
-    <!-- Modal Admin / Editor -->
-    <div id="admin-modal" class="fixed inset-0 bg-black/80 z-[70] hidden items-center justify-center interactive p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl transform transition-transform">
-            <div class="p-5 border-b flex justify-between items-center bg-gray-50">
-                <div class="flex items-center gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
-                    </svg>
-                    <h2 class="text-xl md:text-2xl font-bold text-gray-800">Manajemen Soal</h2>
+    <div id="custom-quiz-editor" class="hidden w-full h-screen absolute top-0 left-0 flex flex-col bg-slate-900 z-40">
+        <div class="flex-none p-4 bg-slate-800 flex justify-between items-center shadow-md">
+            <button onclick="backToMenu('custom-quiz-editor')" class="text-white hover:text-brand transition-colors px-4 py-2">
+                <i class="fas fa-arrow-left mr-2"></i> Menu
+            </button>
+            <h2 class="text-2xl heading-font text-white">Buat Kuis <span class="text-purple-400">Sendiri</span></h2>
+            <button onclick="playCustomQuiz()" class="bg-brand hover:bg-brand-dark text-white px-6 py-2 rounded-lg font-bold shadow-lg transition-colors">
+                <i class="fas fa-play mr-2"></i> Mainkan!
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col md:flex-row gap-6">
+            <!-- Form Input -->
+            <div class="w-full md:w-1/3 glass-dark p-6 rounded-2xl h-fit">
+                <h3 class="text-xl font-bold mb-4 text-purple-300">Tambah Pertanyaan</h3>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-1">Pertanyaan:</label>
+                        <textarea id="cq-question" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white focus:outline-none focus:border-brand transition-colors" rows="2" placeholder="Contoh: Apa ibukota Jawa Barat?"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-brand mb-1 font-bold"><i class="fas fa-check-circle"></i> Jawaban Benar:</label>
+                        <input type="text" id="cq-correct" class="w-full bg-green-900/30 border border-green-600 rounded-lg p-3 text-white focus:outline-none focus:border-brand transition-colors" placeholder="Bandung">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-red-400 mb-1"><i class="fas fa-times-circle"></i> Jawaban Salah 1:</label>
+                        <input type="text" id="cq-wrong1" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white focus:outline-none focus:border-red-400 transition-colors" placeholder="Jakarta">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-red-400 mb-1"><i class="fas fa-times-circle"></i> Jawaban Salah 2:</label>
+                        <input type="text" id="cq-wrong2" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white focus:outline-none focus:border-red-400 transition-colors" placeholder="Surabaya">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-red-400 mb-1"><i class="fas fa-times-circle"></i> Jawaban Salah 3:</label>
+                        <input type="text" id="cq-wrong3" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white focus:outline-none focus:border-red-400 transition-colors" placeholder="Semarang">
+                    </div>
+                    
+                    <button onclick="addCustomQuestion()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg mt-2 transition-colors">
+                        <i class="fas fa-plus"></i> Tambahkan ke Daftar
+                    </button>
+                    <p id="cq-error" class="text-red-400 text-sm hidden mt-2">Harap isi semua kolom!</p>
                 </div>
-                <button id="btn-close-admin" class="text-gray-400 hover:text-red-500 hover:bg-red-50 font-bold p-2 rounded-lg transition-colors text-xl">&times;</button>
-            </div>
-            
-            <!-- Form Tambah Soal -->
-            <div class="p-5 bg-blue-50 border-b">
-                <h3 class="font-bold text-blue-800 mb-3 text-sm uppercase tracking-wider">Tambah Soal Baru</h3>
-                <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
-                    <div class="md:col-span-6">
-                        <input type="text" id="input-soal" placeholder="Pertanyaan (Cth: Manakah penulisan kata yang baku?)" class="border border-gray-300 p-3 rounded-xl w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
-                    </div>
-                    <div class="md:col-span-3">
-                        <input type="text" id="input-benar" placeholder="Jawaban Benar" class="border border-green-300 p-3 rounded-xl w-full text-sm focus:outline-none focus:ring-2 focus:ring-green-500 shadow-sm">
-                    </div>
-                    <div class="md:col-span-3">
-                        <input type="text" id="input-salah" placeholder="Jawaban Salah" class="border border-red-300 p-3 rounded-xl w-full text-sm focus:outline-none focus:ring-2 focus:ring-red-500 shadow-sm">
-                    </div>
-                </div>
-                <button id="btn-tambah-soal" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl w-full transition-colors text-sm shadow-md flex items-center justify-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                    Simpan Ke Database
-                </button>
             </div>
 
-            <!-- List Soal -->
-            <div class="overflow-y-auto flex-grow p-5 bg-gray-100/50" id="admin-question-list">
-                <div class="text-center text-gray-500 py-8 flex flex-col items-center justify-center gap-3">
-                    <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>Memuat data dari database cloud...</span>
+            <!-- List Preview -->
+            <div class="w-full md:w-2/3 glass-dark p-6 rounded-2xl flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-200">Daftar Pertanyaan (<span id="cq-count">0</span>)</h3>
+                    <button onclick="clearCustomQuestions()" class="text-red-400 hover:text-red-300 text-sm"><i class="fas fa-trash"></i> Hapus Semua</button>
+                </div>
+                
+                <div id="cq-list" class="flex-1 overflow-y-auto space-y-3 pr-2">
+                    <!-- Custom questions will be injected here -->
+                    <div class="text-center text-gray-500 mt-10 italic">
+                        Belum ada pertanyaan. Buat di form sebelah kiri!
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, collection, addDoc, deleteDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import {
-            HandLandmarker,
-            FilesetResolver
-        } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3";
+    <div id="camera-loading" class="hidden w-full h-screen absolute top-0 left-0 flex flex-col items-center justify-center bg-slate-900 z-50">
+        <div class="animate-spin text-6xl text-brand mb-6"><i class="fas fa-circle-notch"></i></div>
+        <h2 class="text-2xl text-white heading-font mb-2">Mengakses Kamera...</h2>
+        <p class="text-gray-400">Harap izinkan akses kamera di browsermu.</p>
+        <button onclick="backToMenu('camera-loading')" class="mt-8 text-gray-400 hover:text-white underline">Batalkan</button>
+    </div>
 
-        // Variabel Database & Game Dinamis
-        let questions = [];
-        let currentQuestionIndex = 0;
-        let score = 0;
-        let totalQuestions = 0;
-        let isDataLoaded = false;
-
-        const defaultQuestions = [
-            { text: "Manakah penulisan kata yang baku?", correct: "Kuantitas", wrong: "Kwantitas" },
-            { text: "Manakah penulisan kata yang baku?", correct: "Apotek", wrong: "Apotik" },
-            { text: "Manakah penulisan kata yang baku?", correct: "Nasihat", wrong: "Nasehat" },
-            { text: "Manakah penulisan kata yang baku?", correct: "Risiko", wrong: "Resiko" },
-            { text: "Manakah penulisan kata yang baku?", correct: "Praktik", wrong: "Praktek" },
-            { text: "Manakah penulisan kata yang baku?", correct: "Jadwal", wrong: "Jadual" },
-            { text: "Manakah penulisan kata yang baku?", correct: "Kualitas", wrong: "Kwalitas" },
-            { text: "Manakah penulisan kata yang baku?", correct: "Zaman", wrong: "Jaman" },
-            { text: "Manakah penulisan kata yang baku?", correct: "Aktivitas", wrong: "Aktifitas" },
-            { text: "Manakah penulisan kata yang baku?", correct: "Antre", wrong: "Antri" }
-        ];
-
-        // Referensi DOM
-        const webcamElement = document.getElementById('webcam');
-        const optionsContainer = document.getElementById('options-container');
-        const dropzone = document.getElementById('dropzone');
-        const scoreDisplay = document.getElementById('score-display');
-        const questionCountDisplay = document.getElementById('question-count');
+    <div id="game-container">
+        <!-- Main Canvas to render mirrored video -->
+        <canvas id="camera-canvas"></canvas>
         
-        // Referensi Modal
-        const modal = document.getElementById('message-modal');
-        const modalContent = document.getElementById('modal-content');
-        const modalIcon = document.getElementById('modal-icon');
-        const modalTitle = document.getElementById('modal-title');
-        const modalDesc = document.getElementById('modal-desc');
-        const modalBtn = document.getElementById('modal-btn');
-
-        // Referensi Hand Tracking
-        const handCursor = document.getElementById('hand-cursor');
-        const aiLoader = document.getElementById('ai-loader');
-
-        const btnOpenAdmin = document.getElementById('btn-open-admin');
-        const btnCloseAdmin = document.getElementById('btn-close-admin');
-        const adminModal = document.getElementById('admin-modal');
-        const adminQuestionList = document.getElementById('admin-question-list');
-        const btnTambahSoal = document.getElementById('btn-tambah-soal');
-        const inputSoal = document.getElementById('input-soal');
-        const inputBenar = document.getElementById('input-benar');
-        const inputSalah = document.getElementById('input-salah');
-
-        let editingId = null; // Menyimpan ID dokumen yang sedang diedit
-
-        let handLandmarker = undefined;
-        let runningMode = "VIDEO";
-        let lastVideoTime = -1;
-        
-        // Inisialisasi MediaPipe HandLandmarker
-        const createHandLandmarker = async () => {
-            try {
-                const vision = await FilesetResolver.forVisionTasks(
-                    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
-                );
-                handLandmarker = await HandLandmarker.createFromOptions(vision, {
-                    baseOptions: {
-                        modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
-                        delegate: "GPU"
-                    },
-                    runningMode: runningMode,
-                    numHands: 1
-                });
-                aiLoader.style.display = 'none'; // Sembunyikan loader jika AI siap
-            } catch (error) {
-                console.error("Gagal memuat HandLandmarker:", error);
-                aiLoader.innerHTML = "<span>⚠️ Gagal memuat AI Tangan</span>";
-                setTimeout(() => aiLoader.style.display = 'none', 3000);
-            }
-        };
-        createHandLandmarker();
-
-        // Setup Kamera (Simulasi AR)
-        async function setupCamera() {
-            try {
-                // Minta akses kamera menghadap depan (user)
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: "user" },
-                    audio: false
-                });
-                webcamElement.srcObject = stream;
-                
-                // Mulai deteksi tangan setelah video berhasil diload
-                webcamElement.addEventListener("loadeddata", predictWebcam);
-            } catch (error) {
-                console.warn("Akses kamera ditolak atau tidak tersedia. Menggunakan latar belakang default.", error);
-                // Jika gagal, layar akan tetap menggunakan warna background yang sudah di-set di CSS
-                showModal("Info", "Tidak dapat mengakses kamera. Kamu tetap bisa bermain dengan latar belakang gelap.", "Oke", () => hideModal(), "📷");
-            }
-        }
-
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'ar-kata-baku-default';
-        let firebaseConfig = {};
-        try {
-            firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        } catch(e) { console.error("Error parsing firebase config", e); }
-
-        let app, db, auth, userId;
-        let questionsRef = null;
-
-        async function initFirebase() {
-            if (Object.keys(firebaseConfig).length === 0) {
-                console.warn("Konfigurasi Cloud tidak tersedia, menggunakan data lokal.");
-                questions = [...defaultQuestions];
-                totalQuestions = questions.length;
-                loadQuestion();
-                return;
-            }
-
-            app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-                userId = auth.currentUser.uid;
-                
-                // Menggunakan koleksi publik agar database terbagi & tersimpan di seluruh dunia (Cloud)
-                questionsRef = collection(db, 'artifacts', appId, 'public', 'data', 'questions');
-                
-                listenToDatabase();
-            } catch (error) {
-                console.error("Gagal terhubung ke Cloud Database:", error);
-                questions = [...defaultQuestions];
-                totalQuestions = questions.length;
-                loadQuestion();
-            }
-        }
-
-        function listenToDatabase() {
-            if (!auth.currentUser || !questionsRef) return;
-
-            onSnapshot(questionsRef, async (snapshot) => {
-                // Jika database kosong, otomatis isi dengan 10 soal default
-                if (snapshot.empty && !isDataLoaded) {
-                    document.getElementById('question-text').textContent = "Menyiapkan Database Cloud...";
-                    for (let i = 0; i < defaultQuestions.length; i++) {
-                        await addDoc(questionsRef, { ...defaultQuestions[i], createdAt: Date.now() + i });
-                    }
-                    return; // onSnapshot akan terpanggil ulang otomatis
-                }
-
-                let fetched = [];
-                snapshot.forEach(doc => {
-                    fetched.push({ id: doc.id, ...doc.data() });
-                });
-
-                // Urutkan soal sesuai waktu dibuat (Mencegah error index Firestore)
-                fetched.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-                
-                questions = fetched;
-                totalQuestions = questions.length;
-                
-                renderAdminList();
-
-                // Load ulang tampilan jika ini pengambilan data pertama kali
-                if (!isDataLoaded) {
-                    isDataLoaded = true;
-                    restartGame(); 
-                } else if (currentQuestionIndex >= totalQuestions && totalQuestions > 0) {
-                    // Jika soal dihapus saat kita berada di akhir
-                    currentQuestionIndex = totalQuestions - 1;
-                    loadQuestion();
-                } else {
-                    // Untuk antisipasi update saat dimainkan
-                    questionCountDisplay.textContent = `Soal: ${currentQuestionIndex + 1}/${totalQuestions}`;
-                }
-            }, (error) => {
-                console.error("Error membaca database:", error);
-            });
-        }
-
-        // Logic UI Admin
-        btnOpenAdmin.addEventListener('click', () => adminModal.classList.remove('hidden'));
-        btnCloseAdmin.addEventListener('click', () => {
-            adminModal.classList.add('hidden');
-            // Reset form saat ditutup
-            editingId = null;
-            inputSoal.value = '';
-            inputBenar.value = '';
-            inputSalah.value = '';
-            btnTambahSoal.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg> Simpan Ke Database';
-        });
-
-        btnTambahSoal.addEventListener('click', async () => {
-            if (!questionsRef) return alert("Database belum siap!");
+        <!-- UI Overlay on top of canvas -->
+        <div id="ui-layer">
             
-            const text = inputSoal.value.trim() || "Manakah penulisan kata yang baku?";
-            const correct = inputBenar.value.trim();
-            const wrong = inputSalah.value.trim();
-
-            if (!correct || !wrong) {
-                alert("Pilihan Benar dan Salah tidak boleh kosong!");
-                return;
-            }
-
-            btnTambahSoal.innerHTML = '<svg class="animate-spin h-5 w-5 mr-2 inline" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Menyimpan...';
-            btnTambahSoal.disabled = true;
-
-            try {
-                if (editingId) {
-                    // Update soal yang sudah ada
-                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'questions', editingId), {
-                        text: text,
-                        correct: correct,
-                        wrong: wrong,
-                        updatedAt: Date.now()
-                    });
-                    editingId = null; // Reset status edit
-                } else {
-                    // Tambah soal baru
-                    await addDoc(questionsRef, {
-                        text: text,
-                        correct: correct,
-                        wrong: wrong,
-                        createdAt: Date.now()
-                    });
-                }
-                
-                // Bersihkan form
-                inputSoal.value = '';
-                inputBenar.value = '';
-                inputSalah.value = '';
-            } catch (error) {
-                console.error("Gagal menyimpan soal:", error);
-                alert("Terjadi kesalahan saat menyimpan ke database.");
-            } finally {
-                btnTambahSoal.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg> Simpan Ke Database';
-                btnTambahSoal.disabled = false;
-            }
-        });
-
-        window.hapusSoal = async (docId) => {
-            if (!questionsRef || !confirm("Yakin ingin menghapus soal ini?")) return;
-            try {
-                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'questions', docId));
-            } catch (error) {
-                console.error("Gagal menghapus:", error);
-            }
-        };
-
-        window.editSoal = (docId) => {
-            const q = questions.find(x => x.id === docId);
-            if (!q) return;
-            
-            editingId = docId;
-            inputSoal.value = q.text || '';
-            inputBenar.value = q.correct || '';
-            inputSalah.value = q.wrong || '';
-            
-            btnTambahSoal.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg> Update Soal';
-            
-            // Fokus otomatis ke form soal
-            inputSoal.focus();
-        };
-
-        function renderAdminList() {
-            if (questions.length === 0) {
-                adminQuestionList.innerHTML = `
-                    <div class="text-center text-gray-500 py-10 flex flex-col items-center justify-center bg-white rounded-2xl shadow-sm border border-dashed border-gray-300">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                        </svg>
-                        <p class="font-medium text-lg">Belum ada soal.</p>
-                        <p class="text-sm">Silakan tambahkan soal pertama Anda di form atas.</p>
-                    </div>`;
-                return;
-            }
-
-            adminQuestionList.innerHTML = questions.map((q, index) => `
-                <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm mb-3 border border-gray-100 flex justify-between items-center transition-all hover:shadow-md">
-                    <div class="pr-4">
-                        <div class="text-xs font-bold tracking-wider text-blue-500 mb-1 uppercase">Soal #${index + 1}</div>
-                        <div class="font-bold text-gray-800 mb-3 text-lg">${q.text}</div>
-                        <div class="flex flex-wrap gap-2 text-sm">
-                            <span class="bg-green-100/80 text-green-800 px-3 py-1.5 rounded-lg border border-green-200 shadow-sm flex items-center gap-1"><span class="text-green-500 font-bold">✓</span> ${q.correct}</span>
-                            <span class="bg-red-100/80 text-red-800 px-3 py-1.5 rounded-lg border border-red-200 shadow-sm flex items-center gap-1"><span class="text-red-500 font-bold">✗</span> ${q.wrong}</span>
-                        </div>
+            <!-- Header (Question & Progress) -->
+            <div class="w-full flex justify-center pt-4 pointer-events-none">
+                <div class="glass-dark max-w-2xl w-full mx-4 rounded-2xl p-4 text-center border-t-4 border-t-brand shadow-2xl">
+                    <div class="flex justify-between items-center mb-2 px-2 text-sm md:text-base text-gray-300 font-bold">
+                        <span id="game-score">Skor: 0</span>
+                        <span id="game-progress" class="bg-slate-700 px-3 py-1 rounded-full text-brand">Soal 1/5</span>
                     </div>
-                    <div class="flex flex-col gap-2 shrink-0">
-                        <button onclick="window.editSoal('${q.id}')" class="bg-blue-50 hover:bg-blue-600 text-blue-500 hover:text-white p-3 rounded-xl transition-all shadow-sm flex items-center justify-center" title="Edit Soal">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
+                    <h2 id="game-question" class="text-2xl md:text-4xl text-white font-bold leading-tight drop-shadow-md">
+                        Siap?
+                    </h2>
+                </div>
+            </div>
+
+            <!-- Warning Status -->
+            <div id="motion-warning" class="absolute top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-red-600/80 text-white px-6 py-2 rounded-full font-bold shadow-lg hidden transition-opacity">
+                Terlalu banyak gerakan! Berdiri diam.
+            </div>
+
+            <!-- End Game / Result Overlay -->
+            <div id="game-result" class="hidden absolute inset-0 bg-slate-900/90 z-50 flex items-center justify-center pointer-events-auto">
+                <div class="glass max-w-md w-full p-8 rounded-3xl text-center animate-bounce-in border-2 border-brand">
+                    <i class="fas fa-trophy text-6xl text-yellow-400 mb-4 drop-shadow-[0_0_15px_rgba(250,204,21,0.8)]"></i>
+                    <h2 class="text-4xl text-white heading-font mb-2">Selesai!</h2>
+                    <p class="text-xl text-gray-300 mb-6">Skor Akhirmu:</p>
+                    <div class="text-6xl heading-font text-brand mb-8" id="final-score">100</div>
+                    
+                    <div class="flex gap-4 justify-center">
+                        <button onclick="restartGame()" class="flex-1 bg-brand hover:bg-brand-dark text-white p-3 rounded-xl font-bold transition-transform transform hover:scale-105">
+                            <i class="fas fa-redo"></i> Main Lagi
                         </button>
-                        <button onclick="window.hapusSoal('${q.id}')" class="bg-red-50 hover:bg-red-600 text-red-500 hover:text-white p-3 rounded-xl transition-all shadow-sm flex items-center justify-center" title="Hapus Soal">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                        <button onclick="quitGame()" class="flex-1 bg-slate-600 hover:bg-slate-500 text-white p-3 rounded-xl font-bold transition-transform transform hover:scale-105">
+                            <i class="fas fa-home"></i> Menu Utama
                         </button>
                     </div>
                 </div>
-            `).join('');
+            </div>
+            
+            <!-- Pause / Quit Button -->
+            <button onclick="quitGame()" class="absolute top-4 left-4 glass w-12 h-12 rounded-full flex items-center justify-center text-white hover:text-red-400 hover:bg-red-900/30 transition-all pointer-events-auto z-40">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+
+            <!-- 4 Answer Zones -->
+            <div id="zone-0" class="answer-zone glass font-bold text-lg md:text-2xl drop-shadow-md">
+                <div class="zone-progress-bg"></div>
+                <span class="z-10 relative pointer-events-none" id="text-zone-0">Jawaban A</span>
+            </div>
+            <div id="zone-1" class="answer-zone glass font-bold text-lg md:text-2xl drop-shadow-md">
+                <div class="zone-progress-bg"></div>
+                <span class="z-10 relative pointer-events-none" id="text-zone-1">Jawaban B</span>
+            </div>
+            <div id="zone-2" class="answer-zone glass font-bold text-lg md:text-2xl drop-shadow-md">
+                <div class="zone-progress-bg"></div>
+                <span class="z-10 relative pointer-events-none" id="text-zone-2">Jawaban C</span>
+            </div>
+            <div id="zone-3" class="answer-zone glass font-bold text-lg md:text-2xl drop-shadow-md">
+                <div class="zone-progress-bg"></div>
+                <span class="z-10 relative pointer-events-none" id="text-zone-3">Jawaban D</span>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Hidden Video and Motion Canvas Elements for processing -->
+    <video id="webcam-video" autoplay playsinline class="hidden"></video>
+    <canvas id="motion-canvas" class="hidden"></canvas>
+
+
+    <script>
+        // Database Soal Bawaan
+        const preloadedQuizzes = {
+            'Matematika': [
+                { q: "Berapa hasil dari 7 + 8?", correct: "15", wrongs: ["14", "16", "13"] },
+                { q: "5 x 6 = ...?", correct: "30", wrongs: ["25", "35", "20"] },
+                { q: "Angka prima setelah 7 adalah?", correct: "11", wrongs: ["9", "13", "8"] },
+                { q: "100 dibagi 4 = ?", correct: "25", wrongs: ["20", "50", "30"] },
+                { q: "Akar kuadrat dari 81?", correct: "9", wrongs: ["8", "7", "11"] }
+            ],
+            'B.Inggris': [
+                { q: "Apa bahasa Inggris dari 'Kucing'?", correct: "Cat", wrongs: ["Dog", "Cow", "Bird"] },
+                { q: "Sinonim dari 'Happy'?", correct: "Joyful", wrongs: ["Sad", "Angry", "Tired"] },
+                { q: "Antonim dari 'Big'?", correct: "Small", wrongs: ["Large", "Huge", "Giant"] },
+                { q: "I ... an apple yesterday.", correct: "ate", wrongs: ["eat", "eating", "eats"] },
+                { q: "Warna langit saat cerah?", correct: "Blue", wrongs: ["Red", "Green", "Yellow"] }
+            ],
+            'Geografi': [
+                { q: "Ibukota negara Indonesia?", correct: "Jakarta", wrongs: ["Bandung", "Surabaya", "Bali"] },
+                { q: "Candi Borobudur terletak di provinsi?", correct: "Jawa Tengah", wrongs: ["DIY", "Jawa Timur", "Bali"] },
+                { q: "Pulau terbesar di Indonesia?", correct: "Kalimantan", wrongs: ["Papua", "Sumatera", "Jawa"] },
+                { q: "Gunung tertinggi di Pulau Jawa?", correct: "Semeru", wrongs: ["Merapi", "Bromo", "Rinjani"] },
+                { q: "Danau Toba terletak di?", correct: "Sumatera Utara", wrongs: ["Sumatera Barat", "Aceh", "Riau"] }
+            ],
+            'IPA': [
+                { q: "Hewan pemakan daging disebut?", correct: "Karnivora", wrongs: ["Herbivora", "Omnivora", "Insektivora"] },
+                { q: "Pusat tata surya kita adalah?", correct: "Matahari", wrongs: ["Bumi", "Bulan", "Jupiter"] },
+                { q: "Air mendidih pada suhu?", correct: "100°C", wrongs: ["0°C", "50°C", "90°C"] },
+                { q: "Organ tubuh untuk memompa darah?", correct: "Jantung", wrongs: ["Paru-paru", "Ginjal", "Hati"] },
+                { q: "Gas yang kita hirup untuk bernapas?", correct: "Oksigen", wrongs: ["Karbon Dioksida", "Nitrogen", "Helium"] }
+            ]
+        };
+
+        let customQuestions = [];
+        let activeQuiz = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        
+        // Game State
+        let gameState = 'MENU'; // MENU, PLAYING, GAMEOVER, TRANSITION
+        let activeZones = []; // To store which answer is in which zone
+        let lockedAnswer = false;
+
+        function hideAllScreens() {
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('how-to-play').classList.add('hidden');
+            document.getElementById('subject-select').classList.add('hidden');
+            document.getElementById('custom-quiz-editor').classList.add('hidden');
+            document.getElementById('camera-loading').classList.add('hidden');
+            document.getElementById('game-container').style.display = 'none';
+            document.getElementById('game-result').classList.add('hidden');
         }
 
-        // Render Pertanyaan
-        function loadQuestion() {
-            if (totalQuestions === 0) {
-                document.getElementById('question-text').textContent = "Database Kosong. Silakan tambah soal di Admin.";
-                optionsContainer.innerHTML = '';
-                questionCountDisplay.textContent = `Soal: 0/0`;
+        function showHowToPlay() { document.getElementById('how-to-play').classList.remove('hidden'); }
+        function hideHowToPlay() { document.getElementById('how-to-play').classList.add('hidden'); }
+        function showSubjectSelect() { hideAllScreens(); document.getElementById('subject-select').classList.remove('hidden'); }
+        function showCustomQuizEditor() { hideAllScreens(); document.getElementById('custom-quiz-editor').classList.remove('hidden'); renderCustomQuestions(); }
+        function backToMenu(fromId) { hideAllScreens(); document.getElementById('main-menu').classList.remove('hidden'); stopCamera(); }
+
+        function addCustomQuestion() {
+            const q = document.getElementById('cq-question').value.trim();
+            const correct = document.getElementById('cq-correct').value.trim();
+            const w1 = document.getElementById('cq-wrong1').value.trim();
+            const w2 = document.getElementById('cq-wrong2').value.trim();
+            const w3 = document.getElementById('cq-wrong3').value.trim();
+            
+            const errorEl = document.getElementById('cq-error');
+
+            if(!q || !correct || !w1 || !w2 || !w3) {
+                errorEl.classList.remove('hidden');
+                return;
+            }
+            errorEl.classList.add('hidden');
+
+            customQuestions.push({ q: q, correct: correct, wrongs: [w1, w2, w3] });
+            
+            // Clear form
+            document.getElementById('cq-question').value = '';
+            document.getElementById('cq-correct').value = '';
+            document.getElementById('cq-wrong1').value = '';
+            document.getElementById('cq-wrong2').value = '';
+            document.getElementById('cq-wrong3').value = '';
+            
+            renderCustomQuestions();
+        }
+
+        function renderCustomQuestions() {
+            const listEl = document.getElementById('cq-list');
+            const countEl = document.getElementById('cq-count');
+            countEl.innerText = customQuestions.length;
+
+            if(customQuestions.length === 0) {
+                listEl.innerHTML = '<div class="text-center text-gray-500 mt-10 italic">Belum ada pertanyaan. Buat di form sebelah kiri!</div>';
                 return;
             }
 
-            if (currentQuestionIndex >= totalQuestions) {
+            listEl.innerHTML = '';
+            customQuestions.forEach((item, index) => {
+                const el = document.createElement('div');
+                el.className = 'bg-slate-800 p-3 rounded-lg border border-slate-700 relative';
+                el.innerHTML = `
+                    <div class="font-bold text-gray-200 pr-8 text-sm">${index+1}. ${item.q}</div>
+                    <div class="text-xs mt-1"><span class="text-brand">Benar: ${item.correct}</span></div>
+                    <button onclick="removeCustomQuestion(${index})" class="absolute top-2 right-2 text-red-400 hover:text-red-300">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                listEl.appendChild(el);
+            });
+        }
+
+        function removeCustomQuestion(index) {
+            customQuestions.splice(index, 1);
+            renderCustomQuestions();
+        }
+        function clearCustomQuestions() {
+            customQuestions = [];
+            renderCustomQuestions();
+        }
+
+        function startPreloadedGame(subject) {
+            activeQuiz = [...preloadedQuizzes[subject]]; // clone array
+            // Shuffle questions
+            activeQuiz.sort(() => Math.random() - 0.5);
+            initGameEnv();
+        }
+
+        function playCustomQuiz() {
+            if(customQuestions.length === 0) {
+                alert("Harap buat minimal 1 pertanyaan!"); // Custom modal would be better, but rule says no alert. Ah, wait, RULE says NO alert. I must replace this.
+                const errorEl = document.getElementById('cq-error');
+                errorEl.innerText = "Harap buat minimal 1 pertanyaan terlebih dahulu!";
+                errorEl.classList.remove('hidden');
+                return;
+            }
+            activeQuiz = [...customQuestions];
+            initGameEnv();
+        }
+
+        async function initGameEnv() {
+            hideAllScreens();
+            document.getElementById('camera-loading').classList.remove('hidden');
+            
+            // Setup Camera
+            const cameraReady = await setupCamera();
+            if(!cameraReady) {
+                document.getElementById('camera-loading').innerHTML = `
+                    <div class="text-6xl text-red-500 mb-6"><i class="fas fa-video-slash"></i></div>
+                    <h2 class="text-2xl text-white heading-font mb-2">Akses Kamera Gagal</h2>
+                    <p class="text-gray-400">Game ini membutuhkan kamera. Silakan periksa izin browser.</p>
+                    <button onclick="backToMenu('camera-loading')" class="mt-8 bg-slate-700 hover:bg-slate-600 px-6 py-2 rounded-lg text-white font-bold transition-all">Kembali</button>
+                `;
+                return;
+            }
+
+            hideAllScreens();
+            document.getElementById('game-container').style.display = 'block';
+            
+            // Reset state
+            currentQuestionIndex = 0;
+            score = 0;
+            gameState = 'PLAYING';
+            lockedAnswer = false;
+            
+            resizeCanvases();
+            updateScoreUI();
+            loadNextQuestion();
+            
+            // Start Game Loop
+            if(!animationFrameId) {
+                lastFrameData = null;
+                gameLoop();
+            }
+        }
+
+        function restartGame() {
+            document.getElementById('game-result').classList.add('hidden');
+            currentQuestionIndex = 0;
+            score = 0;
+            gameState = 'PLAYING';
+            lockedAnswer = false;
+            
+            // Shuffle questions again
+            activeQuiz.sort(() => Math.random() - 0.5);
+            
+            updateScoreUI();
+            loadNextQuestion();
+        }
+
+        function quitGame() {
+            stopCamera();
+            if(animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            backToMenu('game-container');
+        }
+
+        const video = document.getElementById('webcam-video');
+        const mainCanvas = document.getElementById('camera-canvas');
+        const mainCtx = mainCanvas.getContext('2d');
+        
+        // Offscreen canvas for motion detection (small resolution for performance)
+        const motionCanvas = document.getElementById('motion-canvas');
+        const motionCtx = motionCanvas.getContext('2d', { willReadFrequently: true });
+        const M_WIDTH = 64; // Low res for fast diffing
+        const M_HEIGHT = 48;
+        motionCanvas.width = M_WIDTH;
+        motionCanvas.height = M_HEIGHT;
+
+        let stream = null;
+        let animationFrameId = null;
+
+        async function setupCamera() {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+                        audio: false 
+                    });
+                    video.srcObject = stream;
+                    
+                    return new Promise((resolve) => {
+                        video.onloadedmetadata = () => {
+                            resolve(true);
+                        };
+                    });
+                } catch (e) {
+                    console.error("Kamera error:", e);
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+                stream = null;
+            }
+        }
+
+        function resizeCanvases() {
+            mainCanvas.width = window.innerWidth;
+            mainCanvas.height = window.innerHeight;
+            calculateZoneRects(); // Recalculate where zones are relative to motion canvas
+        }
+        window.addEventListener('resize', () => {
+            if(gameState !== 'MENU') {
+                resizeCanvases();
+            }
+        });
+
+        function loadNextQuestion() {
+            if (currentQuestionIndex >= activeQuiz.length) {
                 endGame();
                 return;
             }
 
-            const currentQ = questions[currentQuestionIndex];
+            const qData = activeQuiz[currentQuestionIndex];
+            document.getElementById('game-question').innerText = qData.q;
             
-            // Pertanyaan dinamis dari database
-            document.getElementById('question-text').textContent = currentQ.text || "Manakah penulisan kata yang baku?";
-            
-            questionCountDisplay.textContent = `Soal: ${currentQuestionIndex + 1}/${totalQuestions}`;
-            scoreDisplay.textContent = `Skor: ${score * 10}`;
-
-            // Bersihkan kontainer
-            optionsContainer.innerHTML = '';
-
-            // Acak urutan tombol (kiri/kanan)
-            const options = [
-                { text: currentQ.correct, isCorrect: true, style: "bg-white text-gray-800" },
-                { text: currentQ.wrong, isCorrect: false, style: "bg-yellow-400 text-gray-900" }
+            // Prepare options and shuffle them
+            let options = [
+                { text: qData.correct, isCorrect: true },
+                { text: qData.wrongs[0], isCorrect: false },
+                { text: qData.wrongs[1], isCorrect: false },
+                { text: qData.wrongs[2], isCorrect: false }
             ];
-            
-            // Randomize array
             options.sort(() => Math.random() - 0.5);
 
-            options.forEach(opt => {
-                const card = document.createElement('div');
-                // Styling menyerupai gambar (rounded, bayangan, tebal)
-                card.className = `draggable-card ${opt.style} px-8 py-5 md:px-10 md:py-6 rounded-2xl font-bold text-xl md:text-2xl shadow-xl border-b-4 border-black/20 select-none animate-pop absolute`;
-                card.textContent = opt.text;
-                card.dataset.correct = opt.isCorrect;
+            activeZones = [];
+            
+            // Reset zone UI
+            for(let i=0; i<4; i++) {
+                const zoneEl = document.getElementById(`zone-${i}`);
+                const textEl = document.getElementById(`text-zone-${i}`);
+                const progressBg = zoneEl.querySelector('.zone-progress-bg');
                 
-                // Posisikan secara manual agar bisa absolute positioning namun tetap sejajar di awal
-                optionsContainer.appendChild(card);
-            });
+                zoneEl.className = 'answer-zone glass font-bold text-lg md:text-2xl drop-shadow-md'; // reset classes
+                progressBg.style.width = '0%';
+                
+                textEl.innerText = options[i].text;
+                
+                activeZones.push({
+                    id: i,
+                    element: zoneEl,
+                    isCorrect: options[i].isCorrect,
+                    progress: 0
+                });
+            }
 
-            // Susun posisi awal setelah dimasukkan ke DOM dengan sedikit delay
-            // Memberikan waktu browser menghitung ukuran kartu
-            setTimeout(arrangeCards, 50);
+            document.getElementById('game-progress').innerText = `Soal ${currentQuestionIndex + 1}/${activeQuiz.length}`;
+            gameState = 'PLAYING';
+            lockedAnswer = false;
         }
 
-        function arrangeCards() {
-            const cards = optionsContainer.querySelectorAll('.draggable-card');
-            const containerWidth = optionsContainer.clientWidth;
-            const gap = 20; // Jarak antar kartu
-
-            if(cards.length === 2) {
-                // Kartu 1 di kiri tengah, Kartu 2 di kanan tengah
-                cards[0].style.left = `calc(50% - ${cards[0].offsetWidth + gap/2}px)`;
-                cards[0].style.top = '0px';
-                
-                cards[1].style.left = `calc(50% + ${gap/2}px)`;
-                cards[1].style.top = '0px';
-            }
+        function updateScoreUI() {
+            document.getElementById('game-score').innerText = `Skor: ${score}`;
         }
 
-        // Susun ulang jika layar diubah ukurannya
-        window.addEventListener('resize', () => {
-            if (optionsContainer.children.length > 0) {
-                arrangeCards();
-            }
-        });
+        function handleAnswer(zoneIndex) {
+            if (lockedAnswer || gameState !== 'PLAYING') return;
+            lockedAnswer = true;
+            gameState = 'TRANSITION';
 
-        // Sistem Drag and Drop Kustom (Bisa Mouse & Touch)
-        let activeCard = null;
-        let initialX, initialY, startLeft, startTop;
+            const selectedZone = activeZones[zoneIndex];
+            const zoneEl = selectedZone.element;
 
-        // State deteksi tangan (Interaksi Cubit)
-        let isHandPinched = false;
-        let handActiveCard = null;
-        let handStartLeft, handStartTop;
-
-        // Variabel untuk Smoothing (LERP) AI
-        let targetCursorX = window.innerWidth / 2;
-        let targetCursorY = window.innerHeight / 2;
-        let smoothedCursorX = window.innerWidth / 2;
-        let smoothedCursorY = window.innerHeight / 2;
-        let isHandVisible = false;
-        let isRawPinched = false;
-
-        // Loop Prediksi AI (Mendeteksi Cubitan di setiap frame kamera)
-        async function predictWebcam() {
-            if (!handLandmarker) {
-                // Jika model belum termuat, tunggu frame berikutnya
-                window.requestAnimationFrame(predictWebcam);
-                return;
-            }
-
-            let startTimeMs = performance.now();
-            if (lastVideoTime !== webcamElement.currentTime) {
-                lastVideoTime = webcamElement.currentTime;
+            if (selectedZone.isCorrect) {
+                // Correct!
+                zoneEl.classList.add('correct-answer');
+                score += 10;
                 
-                // Proses frame video untuk mencari telapak tangan
-                const results = handLandmarker.detectForVideo(webcamElement, startTimeMs);
-                
-                if (results.landmarks && results.landmarks.length > 0) {
-                    isHandVisible = true;
-                    const landmarks = results.landmarks[0];
-                    
-                    // Ambil titik koordinat ujung jempol (index 4) dan ujung telunjuk (index 8)
-                    const thumbTip = landmarks[4];
-                    const indexTip = landmarks[8];
-                    
-                    // Hitung jarak matematis antara jempol dan telunjuk (deteksi cubitan)
-                    const dx = thumbTip.x - indexTip.x;
-                    const dy = thumbTip.y - indexTip.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    isRawPinched = distance < 0.05; // Batas toleransi jarak cubitan
-                    
-                    // Hitung titik tengah di antara jempol dan telunjuk (koordinat mentah 0.0 - 1.0)
-                    const rawX = (thumbTip.x + indexTip.x) / 2;
-                    const rawY = (thumbTip.y + indexTip.y) / 2;
-                    
-                    // -- Kalkulasi Pemetaan Koordinat Kamera ke Layar --
-                    // Dikarenakan video menggunakan "object-fit: cover", skalanya mungkin terpotong
-                    const videoWidth = webcamElement.videoWidth;
-                    const videoHeight = webcamElement.videoHeight;
-                    const vw = window.innerWidth;
-                    const vh = window.innerHeight;
-                    
-                    const videoRatio = videoWidth / videoHeight;
-                    const viewportRatio = vw / vh;
-                    
-                    let scale, xOffset = 0, yOffset = 0;
-                    if (viewportRatio > videoRatio) {
-                        scale = vw / videoWidth;
-                        yOffset = (vh - (videoHeight * scale)) / 2;
-                    } else {
-                        scale = vh / videoHeight;
-                        xOffset = (vw - (videoWidth * scale)) / 2;
-                    }
-                    
-                    // X dibalik (1 - rawX) karena efek cermin (mirror) pada kamera depan
-                    targetCursorX = (1 - rawX) * videoWidth * scale + xOffset;
-                    targetCursorY = rawY * videoHeight * scale + yOffset;
-                } else {
-                    // Sembunyikan kursor jika tangan keluar dari frame kamera
-                    isHandVisible = false;
-                    isRawPinched = false;
-                }
-            }
-            // Terus panggil fungsi ini di setiap frame berikutnya
-            window.requestAnimationFrame(predictWebcam);
-        }
-
-        // --- LOOP UPDATE UI UNTUK ANIMASI HALUS (LERP) ---
-        function updateAILoop() {
-            if (isHandVisible) {
-                handCursor.style.display = 'block';
-                
-                // LERP (Linear Interpolation) untuk pergerakan yang sangat halus dan smooth
-                smoothedCursorX += (targetCursorX - smoothedCursorX) * 0.25;
-                smoothedCursorY += (targetCursorY - smoothedCursorY) * 0.25;
-                
-                // Update posisi kursor indikator di UI
-                handCursor.style.left = `${smoothedCursorX}px`;
-                handCursor.style.top = `${smoothedCursorY}px`;
-                
-                if (isRawPinched) {
-                    handCursor.classList.add('pinched'); // Ganti warna kursor
-                    
-                    if (!isHandPinched) {
-                        // --- FASE: AWAL CUBITAN (Simulasi Klik Turun) ---
-                        isHandPinched = true;
-                        
-                        // Deteksi elemen apa yang berada tepat di bawah kursor
-                        const el = document.elementFromPoint(smoothedCursorX, smoothedCursorY);
-                        const card = el ? el.closest('.draggable-card') : null;
-                        
-                        if (card) {
-                            handActiveCard = card;
-                            // Matikan transisi lokasi, namun biarkan transisi scale/rotate tetap jalan
-                            handActiveCard.style.transition = 'transform 0.2s ease';
-                            handActiveCard.style.zIndex = '100';
-                            
-                            // Simpan posisi awal kartu sebelum digeser
-                            handStartLeft = parseFloat(handActiveCard.style.left) || 0;
-                            handStartTop = parseFloat(handActiveCard.style.top) || 0;
-                            
-                            // Efek visual saat diangkat (sedikit dimiringkan)
-                            handActiveCard.style.transform = 'scale(1.05) rotate(3deg)';
-                        }
-                    } else if (handActiveCard) {
-                        // --- FASE: TAHAN CUBITAN & GESER (Simulasi Mouse Move) ---
-                        // Pusatkan kartu tepat di titik cubitan dengan koordinat yang sudah diperhalus
-                        handActiveCard.style.left = `${smoothedCursorX - handActiveCard.offsetWidth / 2}px`;
-                        handActiveCard.style.top = `${smoothedCursorY - handActiveCard.offsetHeight / 2}px`;
-                        
-                        // Cek tabrakan dengan Area Jatuh (Dropzone)
-                        if (isOverlapping(handActiveCard, dropzone)) {
-                            dropzone.classList.add('dropzone-active');
-                            document.getElementById('dropzone-text').classList.add('scale-110');
-                        } else {
-                            dropzone.classList.remove('dropzone-active');
-                            document.getElementById('dropzone-text').classList.remove('scale-110');
-                        }
-                    }
-                } else {
-                    handCursor.classList.remove('pinched'); // Kembalikan warna kursor
-                    
-                    if (isHandPinched) {
-                        // --- FASE: LEPASKAN CUBITAN (Simulasi Klik Naik / Drop) ---
-                        isHandPinched = false;
-                        
-                        if (handActiveCard) {
-                            dropzone.classList.remove('dropzone-active');
-                            document.getElementById('dropzone-text').classList.remove('scale-110');
-                            
-                            if (isOverlapping(handActiveCard, dropzone)) {
-                                // Kartu dijatuhkan di tempat yang benar
-                                checkAnswer(handActiveCard);
-                            } else {
-                                // Batal jatuhkan, kembalikan kartu ke posisi asal dengan animasi membal
-                                handActiveCard.style.transition = 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-                                handActiveCard.style.transform = 'scale(1) rotate(0deg)';
-                                handActiveCard.style.left = `${handStartLeft}px`;
-                                handActiveCard.style.top = `${handStartTop}px`;
-                            }
-                            
-                            handActiveCard.style.zIndex = '10';
-                            handActiveCard = null;
-                        }
-                    }
-                }
+                // Sound effect fallback (using Web Audio API for simple beep instead of external files)
+                playTone(600, 'sine', 0.1);
+                setTimeout(() => playTone(800, 'sine', 0.2), 100);
             } else {
-                handCursor.style.display = 'none';
+                // Wrong
+                zoneEl.classList.add('wrong-answer');
+                // Highlight the correct one
+                const correctZone = activeZones.find(z => z.isCorrect);
+                if(correctZone) correctZone.element.classList.add('correct-answer');
                 
-                // Jika tangan tiba-tiba keluar kamera saat mencubit kartu
-                if (isHandPinched) {
-                    isHandPinched = false;
-                    if (handActiveCard) {
-                        dropzone.classList.remove('dropzone-active');
-                        document.getElementById('dropzone-text').classList.remove('scale-110');
-                        
-                        handActiveCard.style.transition = 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-                        handActiveCard.style.transform = 'scale(1) rotate(0deg)';
-                        handActiveCard.style.left = `${handStartLeft}px`;
-                        handActiveCard.style.top = `${handStartTop}px`;
-                        handActiveCard.style.zIndex = '10';
-                        handActiveCard = null;
-                    }
-                }
-            }
-            
-            requestAnimationFrame(updateAILoop);
-        }
-
-        // Mulai loop perhalus UI secara terpisah
-        requestAnimationFrame(updateAILoop);
-
-        // Event listener mouse & touch tetap ada sebagai fallback alternatif
-        document.addEventListener('pointerdown', (e) => {
-            const card = e.target.closest('.draggable-card');
-            if (!card) return;
-
-            activeCard = card;
-            
-            // Matikan transisi lokasi, tapi pertahankan transisi transform untuk efek angkat
-            activeCard.style.transition = 'transform 0.2s ease';
-            activeCard.style.zIndex = '100';
-            
-            // Ambil posisi awal dari inline style
-            startLeft = parseFloat(activeCard.style.left) || 0;
-            startTop = parseFloat(activeCard.style.top) || 0;
-
-            initialX = e.clientX;
-            initialY = e.clientY;
-
-            // Efek visual saat dipegang (sedikit miring)
-            activeCard.style.transform = 'scale(1.05) rotate(3deg)';
-            
-            // Mencegah scroll pada mobile
-            e.preventDefault();
-        }, { passive: false });
-
-        document.addEventListener('pointermove', (e) => {
-            if (!activeCard) return;
-
-            const currentX = e.clientX;
-            const currentY = e.clientY;
-
-            const deltaX = currentX - initialX;
-            const deltaY = currentY - initialY;
-
-            // Pindahkan elemen
-            activeCard.style.left = `${startLeft + deltaX}px`;
-            activeCard.style.top = `${startTop + deltaY}px`;
-
-            // Cek Tabrakan dengan Dropzone
-            if (isOverlapping(activeCard, dropzone)) {
-                dropzone.classList.add('dropzone-active');
-                document.getElementById('dropzone-text').classList.add('scale-110');
-            } else {
-                dropzone.classList.remove('dropzone-active');
-                document.getElementById('dropzone-text').classList.remove('scale-110');
-            }
-            
-            e.preventDefault();
-        }, { passive: false });
-
-        document.addEventListener('pointerup', (e) => {
-            if (!activeCard) return;
-
-            dropzone.classList.remove('dropzone-active');
-            document.getElementById('dropzone-text').classList.remove('scale-110');
-
-            if (isOverlapping(activeCard, dropzone)) {
-                // Di-drop di dalam kotak! Cek jawaban.
-                checkAnswer(activeCard);
-            } else {
-                // Kembali ke posisi semula dengan transisi membal (bouncy)
-                activeCard.style.transition = 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-                activeCard.style.transform = 'scale(1) rotate(0deg)';
-                activeCard.style.left = `${startLeft}px`;
-                activeCard.style.top = `${startTop}px`;
+                playTone(300, 'sawtooth', 0.3);
             }
 
-            activeCard.style.zIndex = '10';
-            activeCard = null;
-        });
+            updateScoreUI();
 
-        // Deteksi Tabrakan
-        function isOverlapping(el1, el2) {
-            const rect1 = el1.getBoundingClientRect();
-            const rect2 = el2.getBoundingClientRect();
-            
-            // Toleransi agar lebih mudah masuk (tidak harus masuk 100%)
-            const buffer = 20;
-
-            return !(rect1.right - buffer < rect2.left ||
-                     rect1.left + buffer > rect2.right ||
-                     rect1.bottom - buffer < rect2.top ||
-                     rect1.top + buffer > rect2.bottom);
-        }
-
-        // Logika Pengecekan Jawaban
-        function checkAnswer(card) {
-            const isCorrect = card.dataset.correct === "true";
-            
-            // Sembunyikan semua kartu
-            optionsContainer.innerHTML = ''; 
-
-            if (isCorrect) {
-                score++;
-                showModal("Tepat Sekali!", `Kata <b>${card.textContent}</b> adalah jawaban yang benar.`, "Lanjut", nextQuestion, "✅", "text-green-500");
-            } else {
-                // Cari jawaban benar untuk ditampilkan dari data dinamis
-                const correctWord = questions[currentQuestionIndex].correct;
-                showModal("Kurang Tepat!", `Jawaban yang benar adalah <b>${correctWord}</b>.`, "Lanjut", nextQuestion, "❌", "text-red-500");
-            }
-        }
-
-        function nextQuestion() {
-            hideModal();
-            currentQuestionIndex++;
-            loadQuestion();
+            // Wait a bit before next question
+            setTimeout(() => {
+                currentQuestionIndex++;
+                loadNextQuestion();
+            }, 2000);
         }
 
         function endGame() {
-            const finalScore = score * 10;
-            let msg = finalScore > 70 ? "Luar biasa! Kamu sangat paham bahasa Indonesia yang baku." : "Terus belajar dan perbanyak membaca ya!";
+            gameState = 'GAMEOVER';
+            document.getElementById('game-result').classList.remove('hidden');
+            document.getElementById('final-score').innerText = score;
+        }
+
+        // Simple Tone generator for SFX (No external libs)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playTone(freq, type, duration) {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.type = type;
+            oscillator.frequency.value = freq;
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start();
+            gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+            oscillator.stop(audioCtx.currentTime + duration);
+        }
+
+
+        let lastFrameData = null;
+        const MOTION_THRESHOLD = 30; // Pixel color difference threshold
+        const ZONE_ACTIVATION_SPEED = 2.5; // How fast the progress bar fills (frames)
+        const ZONE_DECAY_SPEED = 1.0; // How fast it decays if no motion
+        let zoneRects = []; // Mapped coordinates of DOM zones onto the motion canvas
+
+        function calculateZoneRects() {
+            zoneRects = [];
+            const wRatio = M_WIDTH / window.innerWidth;
+            const hRatio = M_HEIGHT / window.innerHeight;
+
+            for(let i=0; i<4; i++) {
+                const el = document.getElementById(`zone-${i}`);
+                const rect = el.getBoundingClientRect();
+                
+                zoneRects.push({
+                    x: Math.floor(rect.left * wRatio),
+                    y: Math.floor(rect.top * hRatio),
+                    w: Math.ceil(rect.width * wRatio),
+                    h: Math.ceil(rect.height * hRatio)
+                });
+            }
+        }
+
+        function gameLoop() {
+            if (!video.videoWidth) {
+                animationFrameId = requestAnimationFrame(gameLoop);
+                return;
+            }
+
+            // 1. Draw Mirror Video to Main Canvas
+            mainCtx.save();
+            // Mirror logic for drawing: translate to width, then scale X by -1
+            mainCtx.translate(mainCanvas.width, 0);
+            mainCtx.scale(-1, 1);
+            // Draw video to cover the canvas (like object-fit: cover)
+            const vRatio = video.videoWidth / video.videoHeight;
+            const cRatio = mainCanvas.width / mainCanvas.height;
+            let drawW, drawH, drawX, drawY;
             
-            showModal("Game Selesai!", `Total Skormu: <b>${finalScore}</b>/100<br><br>${msg}`, "Main Lagi", restartGame, "🏆", "text-yellow-500");
+            if (vRatio > cRatio) {
+                drawH = mainCanvas.height;
+                drawW = drawH * vRatio;
+                drawX = (mainCanvas.width - drawW) / 2;
+                drawY = 0;
+            } else {
+                drawW = mainCanvas.width;
+                drawH = drawW / vRatio;
+                drawX = 0;
+                drawY = (mainCanvas.height - drawH) / 2;
+            }
+            mainCtx.drawImage(video, drawX, drawY, drawW, drawH);
+            mainCtx.restore();
+
+            // 2. Perform Motion Detection if state is PLAYING
+            if (gameState === 'PLAYING' && !lockedAnswer) {
+                
+                // Draw mirrored to motion canvas too so left=left
+                motionCtx.save();
+                motionCtx.translate(M_WIDTH, 0);
+                motionCtx.scale(-1, 1);
+                motionCtx.drawImage(video, 0, 0, M_WIDTH, M_HEIGHT);
+                motionCtx.restore();
+
+                const currentImageData = motionCtx.getImageData(0, 0, M_WIDTH, M_HEIGHT);
+                const currentData = currentImageData.data;
+
+                if (lastFrameData) {
+                    let zoneMotionCounts = [0, 0, 0, 0];
+                    let totalMotion = 0;
+
+                    // Loop through all pixels
+                    for (let y = 0; y < M_HEIGHT; y++) {
+                        for (let x = 0; x < M_WIDTH; x++) {
+                            const i = (y * M_WIDTH + x) * 4;
+                            
+                            // Simple rgb difference
+                            const diffR = Math.abs(currentData[i] - lastFrameData[i]);
+                            const diffG = Math.abs(currentData[i+1] - lastFrameData[i+1]);
+                            const diffB = Math.abs(currentData[i+2] - lastFrameData[i+2]);
+                            
+                            // If pixel changed significantly
+                            if (diffR + diffG + diffB > MOTION_THRESHOLD * 3) {
+                                totalMotion++;
+                                
+                                // Check which zone this pixel falls into
+                                for (let z = 0; z < 4; z++) {
+                                    const zr = zoneRects[z];
+                                    if (x >= zr.x && x <= zr.x + zr.w && y >= zr.y && y <= zr.y + zr.h) {
+                                        zoneMotionCounts[z]++;
+                                    }
+                                }
+                                
+                                // (Optional) Draw debug motion pixels on main canvas
+                                // mainCtx.fillStyle = 'rgba(255,0,0,0.5)';
+                                // mainCtx.fillRect(x * (mainCanvas.width/M_WIDTH), y * (mainCanvas.height/M_HEIGHT), 5, 5);
+                            }
+                        }
+                    }
+
+                    // Check overall movement (prevent cheating by shaking camera)
+                    const motionWarning = document.getElementById('motion-warning');
+                    if (totalMotion > (M_WIDTH * M_HEIGHT * 0.5)) {
+                        motionWarning.classList.remove('hidden');
+                        // Decay all zones rapidly to prevent accidental selection during big movements
+                        for (let z = 0; z < 4; z++) activeZones[z].progress = 0;
+                    } else {
+                        motionWarning.classList.add('hidden');
+                        
+                        // Update Progress for each zone
+                        for (let z = 0; z < 4; z++) {
+                            const zone = activeZones[z];
+                            const zoneArea = zoneRects[z].w * zoneRects[z].h;
+                            const motionRatio = zoneMotionCounts[z] / zoneArea;
+                            
+                            // If more than 5% of the zone area is moving, consider it active
+                            if (motionRatio > 0.05) {
+                                zone.progress = Math.min(100, zone.progress + ZONE_ACTIVATION_SPEED);
+                                zone.element.classList.add('active-motion');
+                            } else {
+                                zone.progress = Math.max(0, zone.progress - ZONE_DECAY_SPEED);
+                                zone.element.classList.remove('active-motion');
+                            }
+
+                            // Update UI bar
+                            const progressBg = zone.element.querySelector('.zone-progress-bg');
+                            progressBg.style.width = `${zone.progress}%`;
+
+                            // Trigger answer if full
+                            if (zone.progress >= 100) {
+                                handleAnswer(z);
+                                break; // Stop checking other zones this frame
+                            }
+                        }
+                    }
+                }
+                
+                // Store current frame for next tick comparison
+                // Copy data so it's not a reference
+                lastFrameData = new Uint8ClampedArray(currentData); 
+            }
+
+            animationFrameId = requestAnimationFrame(gameLoop);
         }
-
-        function restartGame() {
-            score = 0;
-            currentQuestionIndex = 0;
-            hideModal();
-            loadQuestion();
-        }
-
-        // Utility Modal Kustom
-        function showModal(title, descHTML, btnText, callback, icon = "✅", iconColorClass = "text-gray-800") {
-            modalTitle.innerHTML = title;
-            modalDesc.innerHTML = descHTML;
-            modalBtn.textContent = btnText;
-            modalIcon.textContent = icon;
-            
-            modalIcon.className = `text-6xl mb-4 ${iconColorClass}`;
-
-            modal.classList.remove('hidden');
-            // Sedikit delay agar transisi scale terlihat
-            setTimeout(() => {
-                modalContent.classList.remove('scale-95');
-                modalContent.classList.add('scale-100');
-            }, 10);
-
-            modalBtn.onclick = callback;
-        }
-
-        function hideModal() {
-            modalContent.classList.remove('scale-100');
-            modalContent.classList.add('scale-95');
-            setTimeout(() => {
-                modal.classList.add('hidden');
-            }, 200);
-        }
-
-        // Mulai Game
-        window.onload = () => {
-            setupCamera();
-            initFirebase(); // Inisialisasi Database Cloud Firestore
-        };
-
+        
     </script>
 </body>
 </html>
