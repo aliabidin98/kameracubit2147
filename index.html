@@ -88,10 +88,9 @@
 
         /* Answer Zones */
         .answer-zone {
-            position: absolute;
-            width: 40vw;
-            max-width: 300px;
-            min-height: 100px;
+            position: relative;
+            width: 100%;
+            min-height: 120px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -100,25 +99,15 @@
             border-radius: 1rem;
             transition: transform 0.2s, background-color 0.2s, box-shadow 0.2s;
             pointer-events: auto;
+            cursor: pointer;
         }
-        
-        /* Layout for the 4 zones */
-        #zone-0 { top: 15vh; left: 2vw; }
-        #zone-1 { top: 15vh; right: 2vw; }
-        #zone-2 { bottom: 5vh; left: 2vw; }
-        #zone-3 { bottom: 5vh; right: 2vw; }
 
         @media (max-width: 768px) {
             .answer-zone {
-                width: 45vw;
-                min-height: 80px;
-                padding: 0.5rem;
-                font-size: 0.9rem;
+                min-height: 90px;
+                padding: 0.75rem;
+                font-size: 1rem;
             }
-            #zone-0 { top: 20vh; left: 2vw; }
-            #zone-1 { top: 20vh; right: 2vw; }
-            #zone-2 { bottom: 2vh; left: 2vw; }
-            #zone-3 { bottom: 2vh; right: 2vw; }
         }
 
         /* Progress bar inside zones when motion is detected */
@@ -204,7 +193,7 @@
             <div class="space-y-4 text-left text-gray-200 mb-8">
                 <p class="flex items-start"><i class="fas fa-check-circle text-brand mt-1 mr-3"></i> <span>Game ini membutuhkan akses kamera. Pastikan memberikan izin saat diminta.</span></p>
                 <p class="flex items-start"><i class="fas fa-check-circle text-brand mt-1 mr-3"></i> <span>Pertanyaan akan muncul di bagian atas layar.</span></p>
-                <p class="flex items-start"><i class="fas fa-check-circle text-brand mt-1 mr-3"></i> <span>Empat pilihan jawaban ada di sudut layar.</span></p>
+                <p class="flex items-start"><i class="fas fa-check-circle text-brand mt-1 mr-3"></i> <span>Empat pilihan jawaban akan muncul di tengah layar.</span></p>
                 <p class="flex items-start"><i class="fas fa-check-circle text-brand mt-1 mr-3"></i> <span><strong>Gerakkan tanganmu (melambai)</strong> di dalam area kotak jawaban yang menurutmu benar selama 1 detik untuk memilihnya!</span></p>
             </div>
             <button onclick="hideHowToPlay()" class="w-full bg-slate-600 hover:bg-slate-500 text-white py-3 rounded-xl font-bold transition-all">
@@ -361,22 +350,26 @@
                 <i class="fas fa-times text-xl"></i>
             </button>
 
-            <!-- 4 Answer Zones -->
-            <div id="zone-0" class="answer-zone glass font-bold text-lg md:text-2xl drop-shadow-md">
-                <div class="zone-progress-bg"></div>
-                <span class="z-10 relative pointer-events-none" id="text-zone-0">Jawaban A</span>
-            </div>
-            <div id="zone-1" class="answer-zone glass font-bold text-lg md:text-2xl drop-shadow-md">
-                <div class="zone-progress-bg"></div>
-                <span class="z-10 relative pointer-events-none" id="text-zone-1">Jawaban B</span>
-            </div>
-            <div id="zone-2" class="answer-zone glass font-bold text-lg md:text-2xl drop-shadow-md">
-                <div class="zone-progress-bg"></div>
-                <span class="z-10 relative pointer-events-none" id="text-zone-2">Jawaban C</span>
-            </div>
-            <div id="zone-3" class="answer-zone glass font-bold text-lg md:text-2xl drop-shadow-md">
-                <div class="zone-progress-bg"></div>
-                <span class="z-10 relative pointer-events-none" id="text-zone-3">Jawaban D</span>
+            <!-- 4 Answer Zones Centered -->
+            <div class="flex-1 w-full flex items-center justify-center p-4 pointer-events-none mt-10 md:mt-0 z-30">
+                <div class="grid grid-cols-2 gap-4 md:gap-12 w-full max-w-4xl pointer-events-auto">
+                    <div id="zone-0" class="answer-zone glass font-bold text-lg md:text-2xl drop-shadow-md">
+                        <div class="zone-progress-bg"></div>
+                        <span class="z-10 relative pointer-events-none" id="text-zone-0">Jawaban A</span>
+                    </div>
+                    <div id="zone-1" class="answer-zone glass font-bold text-lg md:text-2xl drop-shadow-md">
+                        <div class="zone-progress-bg"></div>
+                        <span class="z-10 relative pointer-events-none" id="text-zone-1">Jawaban B</span>
+                    </div>
+                    <div id="zone-2" class="answer-zone glass font-bold text-lg md:text-2xl drop-shadow-md">
+                        <div class="zone-progress-bg"></div>
+                        <span class="z-10 relative pointer-events-none" id="text-zone-2">Jawaban C</span>
+                    </div>
+                    <div id="zone-3" class="answer-zone glass font-bold text-lg md:text-2xl drop-shadow-md">
+                        <div class="zone-progress-bg"></div>
+                        <span class="z-10 relative pointer-events-none" id="text-zone-3">Jawaban D</span>
+                    </div>
+                </div>
             </div>
 
         </div>
