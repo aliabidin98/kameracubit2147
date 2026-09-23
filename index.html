@@ -88,8 +88,6 @@
 
         /* Answer Zones */
         .answer-zone {
-            position: relative;
-            width: 100%;
             min-height: 120px;
             display: flex;
             align-items: center;
@@ -172,9 +170,7 @@
             </div>
             <h1 class="text-4xl md:text-6xl text-white mb-2 drop-shadow-md">Edu<span class="text-brand">Motion</span></h1>
             <p class="text-gray-300 text-lg mb-2 font-semibold">Kuis Edukasi Berbasis Gerakan Kamera</p>
-            <p class="text-gray-400 text-sm mt-2 mb-8"> Dibuat oleh : M. Nur Ali Abidin, S.Pd </p>
-           
-                
+			<p class="text-gray-400 text-sm mt-2 mb-8"> Dibuat oleh : M. Nur Ali Abidin, S.Pd </p>
 
             <div id="menu-actions" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button onclick="showSubjectSelect(false)" class="bg-blue-600 hover:bg-blue-500 text-white p-4 rounded-2xl font-bold text-xl transition-all transform hover:scale-105 shadow-lg border-b-4 border-blue-800">
@@ -199,7 +195,7 @@
             <div class="space-y-4 text-left text-gray-200 mb-8">
                 <p class="flex items-start"><i class="fas fa-check-circle text-brand mt-1 mr-3"></i> <span>Game ini membutuhkan akses kamera. Pastikan memberikan izin saat diminta.</span></p>
                 <p class="flex items-start"><i class="fas fa-check-circle text-brand mt-1 mr-3"></i> <span>Pertanyaan akan muncul di bagian atas layar.</span></p>
-                <p class="flex items-start"><i class="fas fa-check-circle text-brand mt-1 mr-3"></i> <span>Empat pilihan jawaban akan muncul di tengah layar.</span></p>
+                <p class="flex items-start"><i class="fas fa-check-circle text-brand mt-1 mr-3"></i> <span>Empat pilihan jawaban akan muncul di sudut layar.</span></p>
                 <p class="flex items-start"><i class="fas fa-check-circle text-brand mt-1 mr-3"></i> <span><strong>Gerakkan tanganmu (melambai)</strong> di dalam area kotak jawaban yang menurutmu benar selama 1 detik untuk memilihnya!</span></p>
             </div>
             <button onclick="hideHowToPlay()" class="w-full bg-slate-600 hover:bg-slate-500 text-white py-3 rounded-xl font-bold transition-all">
@@ -363,65 +359,65 @@
                 <i class="fas fa-times text-xl"></i>
             </button>
 
-            <!-- 4 Answer Zones Centered -->
-            <div class="flex-1 w-full flex items-center justify-center p-4 pointer-events-none mt-10 md:mt-0 z-30">
+            <!-- 4 Answer Zones di Pojok -->
+            <div class="absolute inset-0 pointer-events-none z-30">
                 
                 <!-- Single Player Board -->
-                <div id="single-board" class="grid grid-cols-2 gap-4 md:gap-12 w-full max-w-4xl pointer-events-auto">
-                    <div id="zone-0" class="answer-zone glass font-bold text-lg md:text-2xl drop-shadow-md">
+                <div id="single-board" class="absolute inset-0 w-full h-full">
+                    <div id="zone-0" class="answer-zone glass font-bold text-lg md:text-2xl drop-shadow-md absolute top-32 left-4 md:left-10 w-36 md:w-64">
                         <div class="zone-progress-bg"></div>
                         <span class="z-10 relative pointer-events-none" id="text-zone-0">Jawaban A</span>
                     </div>
-                    <div id="zone-1" class="answer-zone glass font-bold text-lg md:text-2xl drop-shadow-md">
+                    <div id="zone-1" class="answer-zone glass font-bold text-lg md:text-2xl drop-shadow-md absolute top-32 right-4 md:right-10 w-36 md:w-64">
                         <div class="zone-progress-bg"></div>
                         <span class="z-10 relative pointer-events-none" id="text-zone-1">Jawaban B</span>
                     </div>
-                    <div id="zone-2" class="answer-zone glass font-bold text-lg md:text-2xl drop-shadow-md">
+                    <div id="zone-2" class="answer-zone glass font-bold text-lg md:text-2xl drop-shadow-md absolute bottom-10 left-4 md:left-10 w-36 md:w-64">
                         <div class="zone-progress-bg"></div>
                         <span class="z-10 relative pointer-events-none" id="text-zone-2">Jawaban C</span>
                     </div>
-                    <div id="zone-3" class="answer-zone glass font-bold text-lg md:text-2xl drop-shadow-md">
+                    <div id="zone-3" class="answer-zone glass font-bold text-lg md:text-2xl drop-shadow-md absolute bottom-10 right-4 md:right-10 w-36 md:w-64">
                         <div class="zone-progress-bg"></div>
                         <span class="z-10 relative pointer-events-none" id="text-zone-3">Jawaban D</span>
                     </div>
                 </div>
 
                 <!-- Battle Board (Hidden by default) -->
-                <div id="battle-board" class="hidden w-full flex justify-between gap-2 md:gap-8 pointer-events-auto">
+                <div id="battle-board" class="hidden absolute inset-0 w-full h-full flex">
                     <!-- Player 1 (Kiri) -->
-                    <div class="w-1/2 grid grid-cols-1 md:grid-cols-2 gap-3 border-r-4 border-dashed border-white/20 pr-2 md:pr-4">
-                        <div id="p1-zone-0" class="answer-zone glass font-bold text-sm md:text-lg border-2 border-blue-500/50">
+                    <div class="relative w-1/2 h-full border-r-2 border-dashed border-white/30">
+                        <div id="p1-zone-0" class="answer-zone glass font-bold text-sm md:text-lg border-2 border-blue-500/50 absolute top-32 left-2 md:left-6 w-28 md:w-48">
                             <div class="zone-progress-bg bg-blue-500/40"></div>
                             <span class="z-10 relative pointer-events-none" id="p1-text-zone-0">A</span>
                         </div>
-                        <div id="p1-zone-1" class="answer-zone glass font-bold text-sm md:text-lg border-2 border-blue-500/50">
+                        <div id="p1-zone-1" class="answer-zone glass font-bold text-sm md:text-lg border-2 border-blue-500/50 absolute top-32 right-2 md:right-6 w-28 md:w-48">
                             <div class="zone-progress-bg bg-blue-500/40"></div>
                             <span class="z-10 relative pointer-events-none" id="p1-text-zone-1">B</span>
                         </div>
-                        <div id="p1-zone-2" class="answer-zone glass font-bold text-sm md:text-lg border-2 border-blue-500/50">
+                        <div id="p1-zone-2" class="answer-zone glass font-bold text-sm md:text-lg border-2 border-blue-500/50 absolute bottom-10 left-2 md:left-6 w-28 md:w-48">
                             <div class="zone-progress-bg bg-blue-500/40"></div>
                             <span class="z-10 relative pointer-events-none" id="p1-text-zone-2">C</span>
                         </div>
-                        <div id="p1-zone-3" class="answer-zone glass font-bold text-sm md:text-lg border-2 border-blue-500/50">
+                        <div id="p1-zone-3" class="answer-zone glass font-bold text-sm md:text-lg border-2 border-blue-500/50 absolute bottom-10 right-2 md:right-6 w-28 md:w-48">
                             <div class="zone-progress-bg bg-blue-500/40"></div>
                             <span class="z-10 relative pointer-events-none" id="p1-text-zone-3">D</span>
                         </div>
                     </div>
                     <!-- Player 2 (Kanan) -->
-                    <div class="w-1/2 grid grid-cols-1 md:grid-cols-2 gap-3 pl-2 md:pl-4">
-                        <div id="p2-zone-0" class="answer-zone glass font-bold text-sm md:text-lg border-2 border-red-500/50">
+                    <div class="relative w-1/2 h-full">
+                        <div id="p2-zone-0" class="answer-zone glass font-bold text-sm md:text-lg border-2 border-red-500/50 absolute top-32 left-2 md:left-6 w-28 md:w-48">
                             <div class="zone-progress-bg bg-red-500/40"></div>
                             <span class="z-10 relative pointer-events-none" id="p2-text-zone-0">A</span>
                         </div>
-                        <div id="p2-zone-1" class="answer-zone glass font-bold text-sm md:text-lg border-2 border-red-500/50">
+                        <div id="p2-zone-1" class="answer-zone glass font-bold text-sm md:text-lg border-2 border-red-500/50 absolute top-32 right-2 md:right-6 w-28 md:w-48">
                             <div class="zone-progress-bg bg-red-500/40"></div>
                             <span class="z-10 relative pointer-events-none" id="p2-text-zone-1">B</span>
                         </div>
-                        <div id="p2-zone-2" class="answer-zone glass font-bold text-sm md:text-lg border-2 border-red-500/50">
+                        <div id="p2-zone-2" class="answer-zone glass font-bold text-sm md:text-lg border-2 border-red-500/50 absolute bottom-10 left-2 md:left-6 w-28 md:w-48">
                             <div class="zone-progress-bg bg-red-500/40"></div>
                             <span class="z-10 relative pointer-events-none" id="p2-text-zone-2">C</span>
                         </div>
-                        <div id="p2-zone-3" class="answer-zone glass font-bold text-sm md:text-lg border-2 border-red-500/50">
+                        <div id="p2-zone-3" class="answer-zone glass font-bold text-sm md:text-lg border-2 border-red-500/50 absolute bottom-10 right-2 md:right-6 w-28 md:w-48">
                             <div class="zone-progress-bg bg-red-500/40"></div>
                             <span class="z-10 relative pointer-events-none" id="p2-text-zone-3">D</span>
                         </div>
@@ -434,7 +430,7 @@
     </div>
 
     <!-- Hidden Video and Motion Canvas Elements for processing -->
-    <video id="webcam-video" autoplay playsinline class="hidden"></video>
+    <video id="webcam-video" autoplay playsinline muted class="hidden"></video>
     <canvas id="motion-canvas" class="hidden"></canvas>
 
 
@@ -690,6 +686,7 @@
                     
                     return new Promise((resolve) => {
                         video.onloadedmetadata = () => {
+                            video.play();
                             resolve(true);
                         };
                     });
@@ -748,7 +745,7 @@
                     const textEl = document.getElementById(`text-zone-${i}`);
                     const progressBg = zoneEl.querySelector('.zone-progress-bg');
                     
-                    zoneEl.className = 'answer-zone glass font-bold text-lg md:text-2xl drop-shadow-md'; 
+                    zoneEl.classList.remove('correct-answer', 'wrong-answer', 'active-motion'); 
                     progressBg.style.width = '0%';
                     progressBg.className = 'zone-progress-bg';
                     textEl.innerText = options[i].text;
@@ -762,7 +759,7 @@
                     const p1ZoneEl = document.getElementById(`p1-zone-${i}`);
                     const p1TextEl = document.getElementById(`p1-text-zone-${i}`);
                     const p1ProgressBg = p1ZoneEl.querySelector('.zone-progress-bg');
-                    p1ZoneEl.className = 'answer-zone glass font-bold text-sm md:text-lg border-2 border-blue-500/50';
+                    p1ZoneEl.classList.remove('correct-answer', 'wrong-answer', 'active-motion');
                     p1ProgressBg.style.width = '0%';
                     p1ProgressBg.className = 'zone-progress-bg bg-blue-500/40';
                     p1TextEl.innerText = options[i].text;
@@ -772,7 +769,7 @@
                     const p2ZoneEl = document.getElementById(`p2-zone-${i}`);
                     const p2TextEl = document.getElementById(`p2-text-zone-${i}`);
                     const p2ProgressBg = p2ZoneEl.querySelector('.zone-progress-bg');
-                    p2ZoneEl.className = 'answer-zone glass font-bold text-sm md:text-lg border-2 border-red-500/50';
+                    p2ZoneEl.classList.remove('correct-answer', 'wrong-answer', 'active-motion');
                     p2ProgressBg.style.width = '0%';
                     p2ProgressBg.className = 'zone-progress-bg bg-red-500/40';
                     p2TextEl.innerText = options[i].text;
@@ -894,7 +891,7 @@
         let zoneRects = []; // Mapped coordinates of DOM zones onto the motion canvas
 
         function calculateZoneRects() {
-            zoneRects = [];
+            const tempRects = [];
             const wRatio = M_WIDTH / window.innerWidth;
             const hRatio = M_HEIGHT / window.innerHeight;
 
@@ -902,13 +899,14 @@
                 const el = activeZones[i].element;
                 const rect = el.getBoundingClientRect();
                 
-                zoneRects.push({
+                tempRects.push({
                     x: Math.floor(rect.left * wRatio),
                     y: Math.floor(rect.top * hRatio),
                     w: Math.ceil(rect.width * wRatio),
                     h: Math.ceil(rect.height * hRatio)
                 });
             }
+            zoneRects = tempRects;
         }
 
         function gameLoop() {
@@ -941,8 +939,8 @@
             mainCtx.drawImage(video, drawX, drawY, drawW, drawH);
             mainCtx.restore();
 
-            // 2. Perform Motion Detection if state is PLAYING
-            if (gameState === 'PLAYING' && !lockedAnswer) {
+            // 2. Perform Motion Detection if state is PLAYING and zones match
+            if (gameState === 'PLAYING' && !lockedAnswer && zoneRects.length === activeZones.length) {
                 
                 // Draw mirrored to motion canvas too so left=left
                 motionCtx.save();
